@@ -80,7 +80,6 @@ def agents():
     return render_template('agents.html',threads=THREADS,ips=IPS)
 
 
-
 @app.route('/<agentname>/executecmd')
 def executecmd(agentname):
     return render_template("execute.html",name=agentname)

