@@ -75,8 +75,12 @@ def before_request():
 def index():
     return render_template('index.html')
 
-@app.route('/agents')
-def agents():
+@app.route('/tcpagents')
+def tcpagentsagents():
+    return render_template('agents.html',threads=THREADS,ips=IPS)
+
+@app.route('/httpagents')
+def httpagents():
     return render_template('agents.html',threads=THREADS,ips=IPS)
 
 
