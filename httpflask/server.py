@@ -19,7 +19,7 @@ def index():
 
     return render_template('index.html', command=current_command["command"], output=current_command["output"])
 
-# Endpoint for the agent to get commands and output
+# Endpoint for the agent to get commands
 @app.route('/get_command', methods=['GET'])
 def get_command():
     global current_command
@@ -38,5 +38,5 @@ def receive_output():
     return 'Output received successfully'
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, use_reloader=False, allow_unsafe_werkzeug=True)
+    socketio.run(app, debug=True,port=5001,use_reloader=False, allow_unsafe_werkzeug=True)
 

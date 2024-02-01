@@ -3,8 +3,8 @@ import subprocess
 import time
 
 # Endpoints on the server
-COMMAND_ENDPOINT = 'http://127.0.0.1:5000/get_command'
-OUTPUT_ENDPOINT = 'http://127.0.0.1:5000/output'
+COMMAND_ENDPOINT = 'http://127.0.0.1:5001/get_command'
+OUTPUT_ENDPOINT = 'http://127.0.0.1:5001/output'
 
 def execute_command(command):
     try:
