@@ -7,33 +7,48 @@ user = "postgres"
 password = "postgres"
 host = "localhost"
 port = "5432"
+conn = None
+cur = None
 
-# Connect to the PostgreSQL database
-connection = psycopg2.connect(dbname=dbname, user=user, password=password, host=host, port=port)
+try:
+    # Connect to the PostgreSQL database
+    conn = psycopg2.connect(dbname=dbname, user=user, password=password, host=host, port=port)
 
-# Create a cursor object to execute SQL queries
-cursor = connection.cursor()
+    # Create a cur object to execute SQL queries
+    cur = conn.cur()
+    cur.execute('DROP TABLE IF EXISTS agents')
+    # Define the table creation query and Execute the table creation query and commit the changes
+    create_script = '''
+    CREATE TABLE IF NOT EXISTS agents (
+        id            SERIAL PRIMARY KEY,
+        time_created  TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        protocol      VARCHAR(6) NOT NULL)
+    '''
+    cur.execute(create_script)
+    conn.commit()
 
-# Define the table creation query
-table_name = "Agent_id"
-columns = [
-    ("agent_id", "SERIAL PRIMARY KEY"),
-    ("Time_created", "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"),
-    ("protocol", "VARCHAR(50)")
-]
-create_table_query = sql.SQL("CREATE TABLE IF NOT EXISTS {} ({});").format(
-    sql.Identifier(table_name),
-    sql.SQL(', ').join([sql.SQL("{} {}").format(sql.Identifier(name), sql.SQL(dtype)) for name, dtype in columns])
-)
+    #insert data into the database
+    insert_script = 'INSERT INTO agents (id, time_created, protocol) VALUES (%s, CURRENT_TIMESTAMP, %s);'
+    insert_values = [(1, 'TCP'), (2, 'HTTP'), (3, 'HTTPS')]
+    for record in insert_values:
+        cur.execute(insert_script,record)
+    conn.commit()
 
-# Execute the table creation query
-cursor.execute(create_table_query)
+    #delete data from the database
+    delete_script = 'DELETE FROM agents WHERE id = %s'
+    delete_record = ('1',)
+    cur.execute(delete_script,delete_record)
+    conn.commit()
+    
 
-# Commit the changes
-connection.commit()
+except Exception as error:
+    print(error)
 
-# Close the cursor and connection
-cursor.close()
-connection.close()
+finally:
+    # Close the cur and connection
+    if cur is not None:
+        cur.close()
+    if conn is not None:
+        conn.close()
 
-print(f"Table {table_name} has been created.")
+print(f"Table agents has been created and data inserted.")
