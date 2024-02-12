@@ -57,7 +57,7 @@ def server_socket():
     while True:
         connection, address = ss.accept()
         thread_index=len(THREADS)
-        t = threading.Thread(target=handle_conn, args=(connection, address,len(THREADS)))
+        t = threading.Thread(target=handle_conn, args=(connection, address,thread_index))
         THREADS.append(t)
         IPS.append(address)
         print(f"Active connections: {active_connections}")
@@ -103,3 +103,4 @@ def execute(agentname):
 
 if __name__=='__main__':
     app.run(debug=True,port=5001)
+    

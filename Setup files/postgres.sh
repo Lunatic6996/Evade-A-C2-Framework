@@ -2,7 +2,7 @@
 
 # Variables
 PASSWORD="postgres"
-DATABASE_NAME="e=Evade-C2" 
+DATABASE_NAME="evade-c2" 
 
 # Added the PostgreSQL repository
 sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'

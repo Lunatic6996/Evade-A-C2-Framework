@@ -1,54 +1,40 @@
 import psycopg2
 from psycopg2 import sql
 
-# Database connection parameters
-dbname = "evade-c2"
-user = "postgres"
-password = "postgres"
-host = "localhost"
-port = "5432"
-conn = None
-cur = None
+# Connection string
+conn_string = "host=127.0.0.1 port=5432 dbname=evade-c2 user=postgres password=postgres sslmode=prefer connect_timeout=10"
 
-try:
-    # Connect to the PostgreSQL database
-    conn = psycopg2.connect(dbname=dbname, user=user, password=password, host=host, port=port)
+# Connect to the PostgreSQL database
+connection = psycopg2.connect(conn_string)
 
-    # Create a cur object to execute SQL queries
-    cur = conn.cur()
-    cur.execute('DROP TABLE IF EXISTS agents')
-    # Define the table creation query and Execute the table creation query and commit the changes
-    create_script = '''
-    CREATE TABLE IF NOT EXISTS agents (
-        id            SERIAL PRIMARY KEY,
-        time_created  TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-        protocol      VARCHAR(6) NOT NULL)
-    '''
-    cur.execute(create_script)
-    conn.commit()
+# Create a cursor object to execute SQL queries
+cursor = connection.cursor()
 
-    #insert data into the database
-    insert_script = 'INSERT INTO agents (id, time_created, protocol) VALUES (%s, CURRENT_TIMESTAMP, %s);'
-    insert_values = [(1, 'TCP'), (2, 'HTTP'), (3, 'HTTPS')]
-    for record in insert_values:
-        cur.execute(insert_script,record)
-    conn.commit()
+# Define the table creation query and execute it
+table_name = "agent_id"  # Changed to lowercase for consistency
+columns = [
+    ("agent_id", "SERIAL PRIMARY KEY"),
+    ("Time_created", "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"),
+    ("protocol", "VARCHAR(50)")
+]
+create_table_query = sql.SQL("CREATE TABLE IF NOT EXISTS {} ({});").format(
+    sql.Identifier(table_name),
+    sql.SQL(', ').join([sql.SQL("{} {}").format(sql.Identifier(name), sql.SQL(dtype)) for name, dtype in columns])
+)
+cursor.execute(create_table_query)
+connection.commit()
 
-    #delete data from the database
-    delete_script = 'DELETE FROM agents WHERE id = %s'
-    delete_record = ('1',)
-    cur.execute(delete_script,delete_record)
-    conn.commit()
-    
+# Insert data into the table (corrected column names to uppercase)
+insert_script = 'INSERT INTO agent_id (agent_id, "Time_created", protocol) VALUES (1, CURRENT_TIMESTAMP, \'HTTPs\')'
+insert_script2 = 'INSERT INTO agent_id (agent_id, "Time_created", protocol) VALUES (2, CURRENT_TIMESTAMP, \'HTTPs\')'
+insert_script3 = 'INSERT INTO agent_id (agent_id, "Time_created", protocol) VALUES (3, CURRENT_TIMESTAMP, \'TCP\')'
+cursor.execute(insert_script)
+cursor.execute(insert_script2)
+cursor.execute(insert_script3)
+connection.commit()
 
-except Exception as error:
-    print(error)
+# Close the cursor and connection
+cursor.close()
+connection.close()
 
-finally:
-    # Close the cur and connection
-    if cur is not None:
-        cur.close()
-    if conn is not None:
-        conn.close()
-
-print(f"Table agents has been created and data inserted.")
+print(f"Table {table_name} has been created")
