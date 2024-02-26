@@ -76,7 +76,6 @@ def handle_conn(connection, address, thread_index):
                         connection.send(contents) 
                         print("File sent to client.")
                         response = connection.recv(2048).decode()
-                        print(f"Received response from client: {response}")
                         if response.startswith("File"):
                             CMD_OUTPUT[thread_index] = response
                             CMD_INPUT[thread_index] = ''
