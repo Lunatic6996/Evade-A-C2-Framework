@@ -21,18 +21,25 @@ while True:
 
         if msg_parts[0] == 'download':
             filename = msg_parts[1]
-            if os.path.exists(filename):
+            if os.path.exists(filename) and os.path.isfile(filename) and os.path.getsize(filename) > 0:
                 with open(filename, 'rb') as f:
-                    contents = f.read()
-                cs.send(contents)
+                    while True:
+                        chunk = f.read(2048)
+                        if not chunk:
+                            break
+                        cs.send(chunk)
             else:
-                cs.send(b"Error: File not found on agent side.")
+                cs.send(b"Error: File not found or empty on agent side.")
 
         elif msg_parts[0] == 'upload':
             filename = msg_parts[1]
+            # Acknowledge receipt of the command
+            cs.send(b"Ready for upload")
+            # Receive the file contents
+            contents = cs.recv(2048) 
             with open(filename, 'wb') as f:
-                contents = cs.recv(2048) 
                 f.write(contents)
+            # Send acknowledgment of successful file upload
             cs.send(b"File Upload Successful.")
 
         else:

