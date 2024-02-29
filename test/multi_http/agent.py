@@ -2,6 +2,7 @@ import requests
 import subprocess
 import time
 import uuid
+import os
 
 SERVER_URL = 'http://127.0.0.1:5001'
 AGENT_ID = str(uuid.uuid4())
