@@ -10,6 +10,9 @@ import Callbacks from './components/Callbacks';
 import Documentation from './components/Document';
 
 function App() {
+
+  console.log(">>>", process.env.REACT_APP_API_KEY)
+
   const [currentPage, setCurrentPage] = useState('Home');
 
   const renderPage = () => {
@@ -26,6 +29,8 @@ function App() {
         return <Home />;
     }
   };
+
+
 
   return (
     <div className="App">

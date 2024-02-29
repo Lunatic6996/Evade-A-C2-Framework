@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Command and Control Interface</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
+</head>
+<body>
+    <h1>Command and Control Interface</h1>
+    
+    <h2>Agents:</h2>
+    <ul id="agentsList"></ul>
+
+    <h2>Send Command:</h2>
+    <form id="commandForm">
+        <label for="agentSelect">Select Agent:</label>
+        <select id="agentSelect" name="agent_id"></select>
+        
+        <label for="command">Enter Command:</label>
+        <input type="text" id="command" name="command">
+        
+        <label for="fileUpload">Upload File:</label>
+        <input type="file" id="fileUpload" name="file">
+        
+        <button type="button">Submit</button>
+    </form>
+
+    <h2>Files Available for Upload:</h2>
+    <ul id="fileList"></ul>
+
+    <h3>Current Command: <span id="currentCommand"></span></h3>
+    <h3>Output:</h3>
+    <ul id="output"></ul>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const socket = io();
+    
+            socket.on('agent_registered', function(data) {
+                const agentSelect = document.getElementById('agentSelect');
+                const newOption = document.createElement('option');
+                newOption.value = data.agent;
+                newOption.textContent = "Agent " + data.agent;
+                agentSelect.appendChild(newOption);
+                updateFileList(agentSelect.value); // Initially update file list for the first agent
+            });
+
+            socket.on('output_received', function(data) {
+                const outputList = document.getElementById('output');
+                const newOutput = document.createElement('li');
+                newOutput.textContent = data.output;
+                outputList.appendChild(newOutput);
+            });
+
+            document.getElementById('agentSelect').addEventListener('change', function() {
+                updateFileList(this.value);
+            });
+
+            document.querySelector('button[type="button"]').addEventListener('click', function() {
+                submitForm();
+            });
+
+            function submitForm() {
+                event.preventDefault();
+                const formData = new FormData(document.getElementById('commandForm'));
+                const file = document.getElementById('fileUpload').files[0];
+                const command = document.getElementById('command').value;
+                const agentId = document.getElementById('agentSelect').value;
+
+                if (file) {
+                    formData.append('file', file);
+                }
+                formData.append('agent_id', agentId);
+                if (command) formData.append('command', command);
+
+                const endpoint = file ? '/upload' : '/send_command';
+
+                fetch(endpoint, {
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    document.getElementById('currentCommand').textContent = command || 'No command sent';
+                    // Reset the form for the next input
+                    document.getElementById('commandForm').reset();
+                    updateFileList(agentId); // Refresh file list if needed
+                })
+                .catch(error => console.error('Error:', error));
+                }
+
+            function updateFileList(agentId) {
+                fetch(`/list_files/${agentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const fileListElement = document.getElementById('fileList');
+                    fileListElement.innerHTML = '';
+                    if (data.files && data.files.length > 0) {
+                        data.files.forEach(file => {
+                            const listItem = document.createElement('li');
+                            listItem.textContent = file;
+                            fileListElement.appendChild(listItem);
+                        });
+                    } else {
+                        fileListElement.innerHTML = '<li>No files available for upload</li>';
+                    }
+                })
+                .catch(error => console.error('Error fetching file list:', error));
+            }
+        });
+    </script>
+</body>
+</html>

