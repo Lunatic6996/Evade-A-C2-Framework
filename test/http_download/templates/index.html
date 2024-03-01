@@ -82,7 +82,7 @@
                 })
                 .then(response => response.json())
                 .then(data => {
-                    alert(data.message);
+                    // alert(data.message);
                     document.getElementById('currentCommand').textContent = command || 'No command sent';
                     // Reset the form for the next input
                     document.getElementById('commandForm').reset();
