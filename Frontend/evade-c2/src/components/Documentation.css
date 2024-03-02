@@ -1,0 +1,13 @@
+.documentation {
+    font-family: Arial, sans-serif;
+    color: #333; /* Default text color, ensure it contrasts with your background */
+    background-color: #f0f0f0; /* Light background for the documentation area */
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.documentation li {
+    color: #333; /* Ensuring list items are visible against a light background */
+    /* Other styles */
+}

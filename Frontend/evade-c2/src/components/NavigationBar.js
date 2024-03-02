@@ -1,5 +1,3 @@
-/* NavigationBar.js */
-
 import React from 'react';
 import './NavigationBar.css';
 
@@ -9,7 +7,8 @@ const NavigationBar = ({ setCurrentPage }) => {
   };
 
   return (
-    <nav>
+    // Add a class name to the nav element to scope your styles
+    <nav className="navbar">
       <div className="brand">Evade-C2</div>
       <ul>
         <li onClick={() => handleNavigation('Home')}>Home</li>
