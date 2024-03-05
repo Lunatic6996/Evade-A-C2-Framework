@@ -117,7 +117,6 @@ def list_files_for_agent(agent_id):
         return jsonify({'error': 'No files found for the specified agent'}), 404
 
 if __name__ == '__main__':
-    # Path to your 'server.crt' and 'server.key'
     ssl_cert = r'E:\\Github\\Repos\\Evade-A-C2-Framework\\test\\HTTPS_COMPLETE\\server.crt'
     ssl_key = r'E:\\Github\\Repos\\Evade-A-C2-Framework\\test\\HTTPS_COMPLETE\\server.key'
     socketio.run(app, debug=True, host='0.0.0.0', port=5001, ssl_context=(ssl_cert, ssl_key), allow_unsafe_werkzeug=True)

