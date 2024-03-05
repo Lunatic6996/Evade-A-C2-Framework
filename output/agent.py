@@ -35,23 +35,12 @@ while True:
             filename = msg_parts[1]
             # Acknowledge receipt of the command
             cs.send(b"Ready for upload")
-            # Receive the file contents or a specific command indicating an empty file
-            contents = cs.recv(2048)
-            if contents == b"Empty File Acknowledged":
-                # Handle the case where the server acknowledged an attempt to upload an empty file
-                # You might choose to simply pass or create an empty file as per requirements
-                #open(filename, 'wb').close()
-                cs.send(b"Empty File")
-            elif not contents:
-                # This block may not be reached if the server is correctly handling empty files,
-                # but it's good practice to handle unexpected empty responses
-                cs.send(b"Dont send 0 KB files.")
-            else:
-                with open(filename, 'wb') as f:
-                    f.write(contents)
-                # Send acknowledgment of successful file upload
-                cs.send(b"File Upload Successful.")
-
+            # Receive the file contents
+            contents = cs.recv(2048) 
+            with open(filename, 'wb') as f:
+                f.write(contents)
+            # Send acknowledgment of successful file upload
+            cs.send(b"File Upload Successful.")
 
         else:
             p = subprocess.Popen(

