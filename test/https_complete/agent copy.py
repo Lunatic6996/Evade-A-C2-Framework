@@ -23,7 +23,7 @@ headers = {
 }
 
 
-SERVER_URL = 'https://100.64.218.67:5001'
+SERVER_URL = 'https://192.168.1.212:5001'
 AGENT_ID = str(uuid.uuid4())
 REGISTER_ENDPOINT = f'{SERVER_URL}/register'
 COMMAND_ENDPOINT = f'{SERVER_URL}/get_command'
