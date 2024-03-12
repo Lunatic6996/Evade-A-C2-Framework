@@ -119,4 +119,4 @@ def list_files_for_agent(agent_id):
 if __name__ == '__main__':
     # Run the app
     #socketio.run(app, debug=True, host='0.0.0.0', port=5001)
-    socketio.run(app, debug=True, port=5001)
+    socketio.run(app, debug=True, port=5001,allow_unsafe_werkzeug=True)

@@ -9,7 +9,7 @@ import sys
 import random
 import time
 
-ip = {lhost}
+ip = '{lhost}'
 port = {lport}
 current_working_directory = os.getcwd()
 
