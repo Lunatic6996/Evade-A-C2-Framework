@@ -7,14 +7,23 @@ function Payloads() {
     lhost: '',
     lport: '',
     type: '',
-    protocol: ''
+    protocol: '',
+    persistence: false, // New field for persistence
+    userAgent: '', // New field for user agent, will hold the selected predefined user-agent
+    sleepTimer: '', // New field for sleep timer
   });
 
+  const userAgents = [ // Predefined user agents for selection
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0"
+  ];
+
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setPayload(prevState => ({
       ...prevState,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -27,8 +36,6 @@ function Payloads() {
     axios.post('http://127.0.0.1:5002/api/generate-payload', payload, { headers })
       .then(response => {
         console.log(response.data);
-        // Use window.location.href to navigate to the download URL,
-        // which should automatically trigger the file download.
         window.location.href = response.data.downloadUrl;
         alert('Payload generated successfully!');
       })
@@ -37,7 +44,6 @@ function Payloads() {
       });
   };
 
-
   return (
     <div>
       <h2>Welcome to Payloads!</h2>
@@ -45,42 +51,71 @@ function Payloads() {
 
       <form onSubmit={handleSubmit}>
         <div>
-          <label>
-            Name:
-            <input type="text" name="name" value={payload.name} onChange={handleChange} />
-          </label>
-        </div>
+            <label>
+              Name:
+              <input type="text" name="name" value={payload.name} onChange={handleChange} />
+            </label>
+          </div>
+          <div>
+            <label>
+              Lhost:
+              <input type="text" name="lhost" value={payload.lhost} onChange={handleChange} />
+            </label>
+          </div>
+          <div>
+            <label>
+              Lport:
+              <input type="text" name="lport" value={payload.lport} onChange={handleChange} />
+            </label>
+          </div>
+          <div>
+            <label>
+              Type (.py or .exe):
+              <select name="type" value={payload.type} onChange={handleChange}>
+                <option value=".py">.py</option>
+                <option value=".exe">.exe</option>
+              </select>
+            </label>
+          </div>
+          <div>
+            <label>
+              Protocol (tcp, http, https):
+              <select name="protocol" value={payload.protocol} onChange={handleChange}>
+                <option value="tcp">TCP</option>
+                <option value="http">HTTP</option>
+                <option value="https">HTTPS</option>
+              </select>
+            </label>
+          </div>
         <div>
           <label>
-            Lhost:
-            <input type="text" name="lhost" value={payload.lhost} onChange={handleChange} />
+            Enable Persistence:
+            <input type="checkbox" name="persistence" checked={payload.persistence} onChange={handleChange} />
           </label>
         </div>
-        <div>
-          <label>
-            Lport:
-            <input type="text" name="lport" value={payload.lport} onChange={handleChange} />
-          </label>
-        </div>
-        <div>
-          <label>
-            Type (.py or .exe):
-            <select name="type" value={payload.type} onChange={handleChange}>
-              <option value=".py">.py</option>
-              <option value=".exe">.exe</option>
-            </select>
-          </label>
-        </div>
-        <div>
-          <label>
-            Protocol (tcp, http, https):
-            <select name="protocol" value={payload.protocol} onChange={handleChange}>
-              <option value="tcp">TCP</option>
-              <option value="http">HTTP</option>
-              <option value="https">HTTPS</option>
-            </select>
-          </label>
-        </div>
+
+        {payload.protocol === 'http' || payload.protocol === 'https' ? (
+          <>
+            <div>
+              <label>
+                User Agent:
+                <select name="userAgent" value={payload.userAgent} onChange={handleChange}>
+                  <option value="">Select User Agent</option>
+                  {userAgents.map((agent, index) => (
+                    <option key={index} value={agent}>{agent}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div>
+              <label>
+                Sleep Timer (seconds):
+                <input type="number" name="sleepTimer" value={payload.sleepTimer} onChange={handleChange} />
+              </label>
+            </div>
+          </>
+        ) : null}
+
         <div>
           <button type="submit">Create</button>
         </div>

