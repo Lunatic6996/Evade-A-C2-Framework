@@ -126,7 +126,7 @@ from agent_templates import tcp_agent_template, http_agent_template, https_agent
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-app.config['UPLOAD_FOLDER'] = 'E:\\Github\\Repos\\Evade-A-C2-Framework\\COMPELTE\\generated_payloads'
+app.config['UPLOAD_FOLDER'] = r"E:\\Github\\Repos\\Evade-A-C2-Framework\\COMPELTE\\generated_payloads"
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 @app.route('/download/<filename>')
