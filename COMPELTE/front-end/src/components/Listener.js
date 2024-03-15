@@ -1,18 +1,20 @@
-// Listener.js
-
 import React from 'react';
 
 function Listener() {
   return (
     <div>
       <p>Welcome to Listener!</p>
-      <p>You can create three different types of listener here. First TCP, HTTP, and HTTPS</p>
+      <p>You can create three different types of listener here: TCP, HTTP, and HTTPS.</p>
 
       <form>
         <div>
           <label>
             Protocol:
-            <input type="text" name="protocol" />
+            <select name="protocol">
+              <option value="TCP">TCP</option>
+              <option value="HTTP">HTTP</option>
+              <option value="HTTPS">HTTPS</option>
+            </select>
           </label>
         </div>
         <div>
