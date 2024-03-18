@@ -4,14 +4,44 @@ import subprocess
 import uuid
 import os
 import logging
+import threading
 # Import agent template functions
 from agent_templates import tcp_agent_template, http_agent_template, https_agent_template
+from tcp_server import start_tcp_server
+
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 app.config['UPLOAD_FOLDER'] = r"E:\\Github\\Repos\\Evade-A-C2-Framework\\COMPELTE\\generated_payloads"
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+@app.route('/api/configure-listener', methods=['POST'])
+def configure_listener():
+    data = request.get_json()
+    protocol = data.get('protocol')
+    port = int(data.get('port'))
+    localIP = data.get('localIP')
+    if not protocol or not port:
+        return jsonify({'error': 'Missing required fields'}), 400
+    if protocol.lower()=='tcp':
+        try:
+            thread = threading.Thread(target=start_tcp_server, args=(localIP, port))
+            thread.daemon = True
+            thread.start()
+            return jsonify({'message': 'TCP server started'}), 200
+        except Exception as e:
+            return jsonify({'error': f'Failed to start TCP listener: {str(e)}'}), 500
+    if protocol.lower()=='http':
+        #start_http_server()
+        pass
+    if protocol.lower()=='https':
+        #start_https_server()
+        pass
+
+    print({'message': f'Listener configured for {protocol} on {localIP} port {port}'})
+    return jsonify({'message': f'Listener configured for {protocol} on {localIP} port {port}'}), 200
+    
 
 @app.route('/download/<filename>')
 def download_payload(filename):
