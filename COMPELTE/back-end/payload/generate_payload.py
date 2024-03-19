@@ -8,13 +8,19 @@ import threading
 # Import agent template functions
 from agent_templates import tcp_agent_template, http_agent_template, https_agent_template
 from tcp_server import start_tcp_server
-
+from database import init_db,db,Agent
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 app.config['UPLOAD_FOLDER'] = r"E:\\Github\\Repos\\Evade-A-C2-Framework\\COMPELTE\\generated_payloads"
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@127.0.0.1:5432/evade-c2'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize the database with your app
+init_db(app)
 
 @app.route('/api/configure-listener', methods=['POST'])
 def configure_listener():
@@ -71,14 +77,12 @@ def download_payload(filename):
 @app.route('/api/generate-payload', methods=['POST'])
 def generate_payload():
     data = request.get_json()
+    agent_id=str(uuid.uuid4())
+    print(agent_id)
     print(data)
     required_fields = ["name", "lhost", "lport", "type", "protocol", "persistence"]
     if not all(field in data for field in required_fields):
         return jsonify({"error": "Missing required fields"}), 400
-    print("----------------------------------------------")
-    print("Sabai chha")
-    print("----------------------------------------------")
-
     # Extract parameters
     name, lhost, lport, payload_type, protocol, persistence = (
         data["name"], data["lhost"], data["lport"], data["type"], data["protocol"], data["persistence"]
@@ -86,13 +90,33 @@ def generate_payload():
 
     userAgent = data.get("userAgent", "")
     sleepTimer = data.get("sleepTimer", "")
-    print("----------------------------------------------")
-    print(name, lhost, lport, payload_type, protocol, persistence, userAgent, sleepTimer )
-    print("----------------------------------------------")
 
     # Choose the appropriate template function and prepare parameters
     if protocol == "tcp":
-        agent_code = tcp_agent_template(lhost=lhost, lport=lport, persistence=persistence)
+        agent_code = tcp_agent_template(lhost=lhost, lport=lport, persistence=persistence,agent_id=agent_id)
+        # write into database about the agent
+        # Prepare extra data for storage
+        extra_data = {
+            "name": name,
+            "lhost": lhost,
+            "lport": lport,
+            "type": payload_type,
+            "persistence": persistence,
+            "userAgent": userAgent,
+            "sleepTimer": sleepTimer
+        }
+
+        # Initialize a new Agent object with the data
+        new_agent = Agent(
+            agent_id=agent_id,
+            protocol=protocol,
+            extra_data=extra_data  # Storing extra data as JSON
+        )
+
+        # Add the new agent to the session and commit to save it to the database
+        db.session.add(new_agent)
+        db.session.commit()
+
     elif protocol == "http":
         try:
             print(f"Handling {protocol.upper()} protocol")

