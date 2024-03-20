@@ -5,12 +5,15 @@ import uuid
 import os
 import logging
 import threading
+from flask_socketio import SocketIO,emit
 # Import agent template functions
 from agent_templates import tcp_agent_template, http_agent_template, https_agent_template
 from tcp_server import start_tcp_server
-from database import init_db,db,Agent
+from database import init_db,db,Agent,Session  
 
 app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*")
+
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 app.config['UPLOAD_FOLDER'] = r"E:\\Github\\Repos\\Evade-A-C2-Framework\\COMPELTE\\generated_payloads"
@@ -162,8 +165,6 @@ def generate_payload():
     else:
         return jsonify({"error": "Invalid protocol specified"}), 400
 
-
-
     print("----------------------------------------------")
     print("Filename ma pugyo")
     print("----------------------------------------------")
@@ -184,5 +185,40 @@ def generate_payload():
     download_url = f"http://{request.host}/download/{filename}"
     return jsonify({"message": "Payload generated successfully", "downloadUrl": download_url})
 
+
+@socketio.on('connect')
+def handle_connect():
+    print("Client connected")
+    # Optionally, you can emit a message back to the newly connected client
+    emit('connection_status', {'message': 'Successfully connected to the server'})
+
+def notify_frontend(agent_id):
+    """Function to notify the frontend about an agent's status."""
+    with app.app_context():
+        session = Session()
+        agent = session.query(Agent).filter_by(agent_id=agent_id).first()
+        if agent:
+            print(f"Agent Data: ID={agent.agent_id}, Protocol={agent.protocol}, Last Seen={agent.last_seen}")
+            print("-------------------------------------------------------")
+            print("EMIT EMIT")
+            print("-------------------------------------------------------")
+            socketio.emit('agent_update', {
+                'agent_id': agent.agent_id,
+                'protocol': agent.protocol,
+                'last_seen': agent.last_seen.strftime('%Y-%m-%d %H:%M:%S')
+            })
+        session.close()
+
+@app.route('/api/notify-agent-connection', methods=['POST'])
+def notify_agent_connection():
+    data = request.json
+    agent_id = data.get('agent_id')
+    if agent_id:
+        # Assuming notify_frontend is already defined and emits a WebSocket message
+        notify_frontend(agent_id)
+        return jsonify({'status': 'success'}), 200
+    return jsonify({'error': 'Missing agent_id'}), 400
+
 if __name__ == "__main__":
-    app.run(debug=True, port=5002)
+    #app.run(debug=True, port=5002)
+    socketio.run(app,debug=True, port=5002,allow_unsafe_werkzeug=True)

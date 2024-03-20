@@ -1,28 +1,37 @@
-// Callbacks.js
+import React, { useEffect, useState } from 'react';
+import io from 'socket.io-client';
 
-import React from 'react';
+const socket = io('http://127.0.0.1:5002'); // Update with your actual server URL
 
 function Callbacks() {
+  const [agents, setAgents] = useState([]);
+
+  useEffect(() => {
+    socket.on('connection_status', (data) => {
+      console.log(data.message); // "Successfully connected to the server"
+    });
+    socket.on('agent_update', (data) => {
+        console.log(data); // Add this line to log incoming data
+        setAgents(prevAgents => [...prevAgents, data]);
+    });
+    return () => {
+      socket.off('connection_status');
+      socket.off('agent_update');
+    };
+  }, []);
+
   return (
     <div>
       <p>Welcome to Callbacks!</p>
-
+      {/* Render agents here */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <p>Agents</p>
-        <div style={{ display: 'flex', marginBottom: '10px' }}>
-          <p style={{ marginRight: '100px' }}>Name</p>
-          <p style={{ marginRight: '100px' }}>Protocol</p>
-          <p>Last seen</p>
-        </div>
-
-        {/* Box with border and Command button to the right */}
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-          <div style={{ border: '2px solid #333', padding: '10px', borderRadius: '5px' }}>
-            {/* Content inside the box */}
-            <p>Additional content goes here</p>
+        {agents.map((agent, index) => (
+          <div key={index} style={{ display: 'flex', marginBottom: '10px' }}>
+            <p style={{ marginRight: '100px' }}>{agent.agent_id}</p>
+            <p style={{ marginRight: '100px' }}>{agent.protocol}</p>
+            <p>{agent.last_seen}</p>
           </div>
-          <button style={{ marginLeft: '10px' }}>Command</button>
-        </div>
+        ))}
       </div>
     </div>
   );

