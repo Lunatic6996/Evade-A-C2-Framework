@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function Payloads() {
   const [payload, setPayload] = useState({
     name: '',
     lhost: '',
     lport: '',
-    type: '',
-    protocol: '',
-    persistence: false, // New field for persistence
-    userAgent: '', // New field for user agent, will hold the selected predefined user-agent
-    sleepTimer: '', // New field for sleep timer
+    type: '.py', // Setting default value for type
+    protocol: 'tcp', // Setting default value for protocol
+    persistence: false,
+    userAgent: '',
+    sleepTimer: '',
   });
 
-  const userAgents = [ // Predefined user agents for selection
+  const notify = () => toast("Wow so easy!");
+
+  const userAgents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0"
@@ -37,10 +41,11 @@ function Payloads() {
       .then(response => {
         console.log(response.data);
         window.location.href = response.data.downloadUrl;
-        alert('Payload generated successfully!');
+        toast.success('Payload generated successfully!');
       })
       .catch(error => {
         console.error('There was an error generating the payload:', error);
+        toast.error('Error generating payload. Please try again.');
       });
   };
 
@@ -120,6 +125,7 @@ function Payloads() {
           <button type="submit">Create</button>
         </div>
       </form>
+      <ToastContainer />
     </div>
   );
 }

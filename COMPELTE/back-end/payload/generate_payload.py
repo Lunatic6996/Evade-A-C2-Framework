@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory,session
 from flask_cors import CORS
 import subprocess
 import uuid
@@ -6,15 +6,32 @@ import os
 import logging
 import threading
 from flask_socketio import SocketIO,emit
+
+from werkzeug.security import check_password_hash, generate_password_hash
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+
 # Import agent template functions
 from agent_templates import tcp_agent_template, http_agent_template, https_agent_template
 from tcp_server import start_tcp_server
 from database import init_db,db,Agent,Session  
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="http://localhost:3000")
 
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+app.secret_key = '134j3b4k2jb34k2b3kh4'
+app.config['SESSION_COOKIE_NAME'] = 'PleaseStay'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_PERMANENT'] = True
+
+# Initialize Session
+#sess = Session()
+#sess.init_app(app)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+CORS(app, supports_credentials=True, origins='http://localhost:3000')
 
 app.config['UPLOAD_FOLDER'] = r"E:\\Github\\Repos\\Evade-A-C2-Framework\\COMPELTE\\generated_payloads"
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -24,6 +41,44 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize the database with your app
 init_db(app)
+
+class User(UserMixin):
+    def __init__(self, username):
+        self.id = username  # Using username as the user identifier
+
+# Static users dictionary
+users = {'rochak': generate_password_hash('rochak')}
+
+# Adjusting user loader to work with static dictionary
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id in users:
+        return User(user_id)
+    return None
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    username = request.json.get('username')
+    password = request.json.get('password')
+    if username in users and check_password_hash(users[username], password):
+        user = User(username)
+        login_user(user)
+        session['logged_in'] = True
+        session.permanent = True
+        return jsonify({'logged_in': True}), 200
+    return jsonify({'logged_in': False, 'message': 'Invalid credentials'}), 401
+
+@app.route('/api/logout', methods=['POST'])
+@login_required
+def logout():
+    logout_user()
+    return jsonify({'logged_out': True}), 200
+
+@app.route('/api/check_login', methods=['GET'])
+def check_login():
+    if current_user.is_authenticated:
+        return jsonify({'logged_in': True}), 200
+    return jsonify({'logged_in': False}), 200
 
 @app.route('/api/configure-listener', methods=['POST'])
 def configure_listener():
