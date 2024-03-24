@@ -20,20 +20,34 @@ def notify_flask_about_agent_connection(agent_id):
         print("Failed to notify Flask app:", e)
 
 def handle_agent_connection(conn, addr):
-    """Handle connections from agents."""
+    """Handle connections from agents and command responses."""
+    print(f"Got the connection from {addr}")
     with Session() as session:
         while True:
             data = conn.recv(2048).decode()
             if not data:
                 break
-            agent_id = data  # Assuming the agent sends its ID first
-            agent = session.query(Agent).filter_by(agent_id=agent_id).first()
-            if agent:
-                print(f"Agent {agent_id} recognized. Connection established.")
-                agent_connections[agent_id] = conn
-                notify_flask_about_agent_connection(agent_id)
-            else:
-                print(f"Unrecognized agent ID: {agent_id}")
+
+            try:
+                # Attempt to parse the data as JSON
+                data_json = json.loads(data)
+                agent_id = data_json.get('agent_id')
+                command_response = data_json.get('response')
+                print(f"Command response from {agent_id}: {command_response}")
+                
+                # Here, you might want to forward this response to the frontend or handle it as needed.
+                # Ensure you have logic here to properly manage and use the command response.
+
+            except json.JSONDecodeError:
+                # If JSON parsing fails, treat data as the agent ID (plain text)
+                agent_id = data
+                agent = session.query(Agent).filter_by(agent_id=agent_id).first()
+                if agent:
+                    print(f"Agent {agent_id} recognized. Connection established.")
+                    agent_connections[agent_id] = conn
+                    notify_flask_about_agent_connection(agent_id)
+                else:
+                    print(f"Unrecognized agent ID: {agent_id}")
 
 def handle_command_connection(conn, addr):
     """Handle command connections from the backend."""
@@ -47,12 +61,20 @@ def handle_command_connection(conn, addr):
             command = command_info['command']
             if agent_id in agent_connections:
                 agent_conn = agent_connections[agent_id]
+                # Send the command to the agent
                 agent_conn.sendall(command.encode())
-                print(f"Command '{command}' sent to agent {agent_id}.")
+                # Wait for the response from the agent
+                response = agent_conn.recv(2048).decode()
+                # Send the response back to the backend
+                conn.sendall(response.encode())
+                print(f"Response from agent {agent_id} relayed back to backend.")
             else:
-                print(f"Agent {agent_id} is not connected.")
+                print(f"Agent {agent_id} is not connected. Unable to send command.")
+                conn.sendall(f"Agent {agent_id} is not connected.".encode())
         except json.JSONDecodeError:
             print("Malformed command data received.")
+            conn.sendall("Malformed command data received.".encode())
+
 
 def start_agent_listener(ip, port):
     """Listen for agent connections."""
