@@ -6,6 +6,8 @@ import os
 import logging
 import threading
 from flask_socketio import SocketIO,emit
+import socket
+import json
 
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -79,6 +81,26 @@ def check_login():
     if current_user.is_authenticated:
         return jsonify({'logged_in': True}), 200
     return jsonify({'logged_in': False}), 200
+
+@app.route('/api/execute-command', methods=['POST'])
+def execute_command():
+    data = request.get_json()
+    agent_id = data.get('agentId')
+    command = data.get('command')
+    
+    # Connect to your TCP server
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect(('127.0.0.1', 62347))
+        # Send agent_id and command in a structured format
+        message = json.dumps({'agent_id': agent_id, 'command': command})
+        s.sendall(message.encode('utf-8'))
+        
+        # Wait for acknowledgment or response from the TCP server
+        response = s.recv(1024)
+        print('Received:', response.decode('utf-8'))
+    
+    return jsonify({'status': 'Command sent to TCP server', 'response': response.decode('utf-8')}), 200
+
 
 @app.route('/api/configure-listener', methods=['POST'])
 def configure_listener():

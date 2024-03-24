@@ -1,38 +1,39 @@
-import React, { useEffect } from 'react';
-import io from 'socket.io-client';
-import { useAgentData } from './AgentDataContext'; // Ensure this path is correct
-
-const socket = io('http://127.0.0.1:5002'); // Update with your actual server URL
+// Callbacks.js
+import React, { useState } from 'react';
+import { useAgentData } from './AgentDataContext';
+import InteractModal from './InteractModal/InteractModal'; // Make sure the path is correct
 
 function Callbacks() {
-  const { agents, setAgents } = useAgentData(); // Use the useAgentData hook here
+  const { agents } = useAgentData();
+  const [showModal, setShowModal] = useState(false);
+  const [currentAgentId, setCurrentAgentId] = useState(null);
 
-  useEffect(() => {
-    socket.on('connection_status', (data) => {
-      console.log(data.message); // "Successfully connected to the server"
-    });
-    socket.on('agent_update', (data) => {
-        console.log(data); // Log incoming data
-        setAgents(prevAgents => [...prevAgents, data]);
-    });
-    return () => {
-      socket.off('connection_status');
-      socket.off('agent_update');
-    };
-  }, [setAgents]); // Dependency array
+  const handleInteractClick = (agentId) => {
+    setCurrentAgentId(agentId);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setCurrentAgentId(null);
+  };
 
   return (
-    <div>
-      <p>Welcome to Callbacks!</p>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        {agents.map((agent, index) => (
-          <div key={index} style={{ display: 'flex', marginBottom: '10px' }}>
-            <p style={{ marginRight: '100px' }}>{agent.agent_id}</p>
-            <p style={{ marginRight: '100px' }}>{agent.protocol}</p>
-            <p>{agent.last_seen}</p>
+    <div style={{ maxWidth: '800px', margin: 'auto' }}>
+      <h2>Welcome to Callbacks!</h2>
+      {agents.map((agent, index) => (
+        <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', padding: '10px', background: '#f0f0f0', borderRadius: '5px' }}>
+          <div style={{ flexGrow: 1, display: 'flex', justifyContent: 'space-between' }}>
+            <span>ID: {agent.agent_id}</span>
+            <span>Protocol: {agent.protocol}</span>
+            <span>Last Seen: {agent.last_seen}</span>
           </div>
-        ))}
-      </div>
+          <button onClick={() => handleInteractClick(agent.agent_id)} style={{ marginLeft: '20px' }}>Interact</button>
+        </div>
+      ))}
+      {showModal && (
+        <InteractModal agentId={currentAgentId} onClose={handleCloseModal} />
+      )}
     </div>
   );
 }
