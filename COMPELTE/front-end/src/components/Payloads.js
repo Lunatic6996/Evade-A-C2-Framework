@@ -15,7 +15,7 @@ function Payloads() {
     sleepTimer: '',
   });
 
-  const notify = () => toast("Wow so easy!");
+  //const notify = () => toast("Wow so easy!");
 
   const userAgents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0",
@@ -31,23 +31,39 @@ function Payloads() {
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const headers = {
-      'Content-Type': 'application/json'
-    };
+  // Handle form submission
+const handleSubmit = (e) => {
+  e.preventDefault();
 
-    axios.post('http://127.0.0.1:5002/api/generate-payload', payload, { headers })
-      .then(response => {
-        console.log(response.data);
-        window.location.href = response.data.downloadUrl;
-        toast.success('Payload generated successfully!');
-      })
-      .catch(error => {
-        console.error('There was an error generating the payload:', error);
-        toast.error('Error generating payload. Please try again.');
-      });
+  // Define required fields based on protocol
+  const requiredFields = ['name', 'lhost', 'lport', 'type', 'protocol'];
+  if (payload.protocol === 'http' || payload.protocol === 'https') {
+    requiredFields.push('userAgent', 'sleepTimer');
+  }
+
+  // Check if any required field is empty
+  for (const field of requiredFields) {
+    if (!payload[field]) {
+      toast.error('Please fill out all required fields.');
+      return;
+    }
+  }
+
+  const headers = {
+    'Content-Type': 'application/json'
   };
+
+  axios.post('http://127.0.0.1:5002/api/generate-payload', payload, { headers })
+    .then(response => {
+      console.log(response.data);
+      window.location.href = response.data.downloadUrl;
+      toast.success('Payload generated successfully!');
+    })
+    .catch(error => {
+      console.error('There was an error generating the payload:', error);
+      toast.error('Error generating payload. Please try again.');
+    });
+};
 
   return (
     <div>

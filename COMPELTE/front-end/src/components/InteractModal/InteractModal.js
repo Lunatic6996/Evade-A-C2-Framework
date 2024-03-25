@@ -17,7 +17,8 @@ function InteractModal({ agentId, onClose }) {
       });
       const data = await response.json();
       if (response.ok) {
-        setOutput(data.output);
+        console.log(data.response); // Make sure to access the correct property from the response data
+        setOutput(data.response); // Set the output to the response received from the backend
       } else {
         setOutput('Error: ' + (data.error || 'Failed to execute command'));
       }

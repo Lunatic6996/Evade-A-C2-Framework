@@ -87,20 +87,21 @@ def execute_command():
     data = request.get_json()
     agent_id = data.get('agentId')
     command = data.get('command')
-    
+
     # Connect to your TCP server
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect(('127.0.0.1', 62347))
         # Send agent_id and command in a structured format
         message = json.dumps({'agent_id': agent_id, 'command': command})
         s.sendall(message.encode('utf-8'))
-        
-        # Wait for acknowledgment or response from the TCP server
-        response = s.recv(1024)
-        print('Received:', response.decode('utf-8'))
-    
-    return jsonify({'status': 'Command sent to TCP server', 'response': response.decode('utf-8')}), 200
 
+        # Wait for acknowledgment or response from the TCP server
+        response = s.recv(1024).decode('utf-8')
+        print("------------------------------------")
+        print(f'Received: {response}')
+        print("------------------------------------")
+
+    return jsonify({'status': 'Command sent to TCP server', 'response': response}), 200
 
 @app.route('/api/configure-listener', methods=['POST'])
 def configure_listener():
@@ -110,7 +111,15 @@ def configure_listener():
     localIP = data.get('localIP')
     if not protocol or not port:
         return jsonify({'error': 'Missing required fields'}), 400
-    if protocol.lower()=='tcp':
+
+    if protocol.lower() == 'tcp':
+        # Check if the port is already in use
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind((localIP, port))
+        except OSError:
+            return jsonify({'error': f'TCP port {port} is already in use'}), 400
+
         try:
             thread = threading.Thread(target=start_tcp_server, args=(localIP, port))
             thread.daemon = True
@@ -118,10 +127,12 @@ def configure_listener():
             return jsonify({'message': 'TCP server started'}), 200
         except Exception as e:
             return jsonify({'error': f'Failed to start TCP listener: {str(e)}'}), 500
-    if protocol.lower()=='http':
+
+    if protocol.lower() == 'http':
         #start_http_server()
         pass
-    if protocol.lower()=='https':
+
+    if protocol.lower() == 'https':
         #start_https_server()
         pass
 

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function Listener() {
   // State to store form field values
@@ -20,40 +22,48 @@ function Listener() {
   };
 
   // Handle form submission
-  const handleSubmit = async (event) => {
-    event.preventDefault(); // Prevent the form from submitting in the traditional way
+const handleSubmit = async (event) => {
+  event.preventDefault(); // Prevent the form from submitting in the traditional way
 
-    // Construct the data object to send
-    const listenerConfig = {
-      protocol,
-      localIP,
-      port,
-    };
+  // Check if any of the fields are empty
+  if (!protocol || !localIP || !port) {
+    toast.error('Please fill out all fields.');
+    return;
+  }
 
-    // Send the configuration to your Flask backend
-    try {
-      const response = await fetch('http://127.0.0.1:5002/api/configure-listener', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(listenerConfig),
-      });
-      const responseData = await response.json();
-
-      if (response.ok) {
-        alert(`Listener configured successfully: ${responseData.message}`);
-      } else {
-        alert(`Error: ${responseData.error}`);
-      }
-    } catch (error) {
-      console.error('Failed to configure listener', error);
-      alert('Failed to send listener configuration to the server.');
-    }
+  // Construct the data object to send
+  const listenerConfig = {
+    protocol,
+    localIP,
+    port,
   };
+
+  // Send the configuration to your Flask backend
+  try {
+    const response = await fetch('http://127.0.0.1:5002/api/configure-listener', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(listenerConfig),
+    });
+    const responseData = await response.json();
+
+    if (response.ok) {
+      toast.success(`Listener configured successfully: ${responseData.message}`);
+    } else {
+      toast.error(`Error: ${responseData.error}`);
+    }
+  } catch (error) {
+    console.error('Failed to configure listener', error);
+    toast.error('Failed to send listener configuration to the server.');
+  }
+};
+
 
   return (
     <div>
+      <ToastContainer />
       <p>Welcome to Listener!</p>
       <p>You can create three different types of listener here: TCP, HTTP, and HTTPS.</p>
 
