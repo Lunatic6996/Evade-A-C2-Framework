@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import { AgentDataProvider } from './components/AgentDataContext'; // Correct import path
+import { AgentDataProvider } from './components/AgentDataContext';
+import { ListenerProvider } from './components/ListenerContext'; // Import the ListenerProvider
 import NavigationBar from './components/NavigationBar';
 import Home from './components/Home';
 import Listener from './components/Listener';
@@ -69,10 +70,12 @@ function App() {
 
   return (
     <AgentDataProvider> {/* Wrap the application within AgentDataProvider */}
-      <div className="App">
-        {isLoggedIn && <NavigationBar setCurrentPage={setCurrentPage} onLogout={handleLogout} isLoggedIn={isLoggedIn} />}
-        {renderPage()}
-      </div>
+      <ListenerProvider> {/* Additionally, wrap the application or relevant parts with ListenerProvider */}
+        <div className="App">
+          {isLoggedIn && <NavigationBar setCurrentPage={setCurrentPage} onLogout={handleLogout} isLoggedIn={isLoggedIn} />}
+          {renderPage()}
+        </div>
+      </ListenerProvider>
     </AgentDataProvider>
   );
 }
