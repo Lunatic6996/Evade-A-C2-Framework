@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './Login.css';
 import logoSrc from '../LOGO.svg';
 
@@ -6,25 +6,6 @@ const Login = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-
-  useEffect(() => {
-    const checkLoginStatus = async () => {
-      try {
-        const response = await fetch('http://127.0.0.1:5002/api/check_login', {
-          credentials: 'include', // Ensure cookies are sent with the request
-        });
-        const data = await response.json();
-        if (data.logged_in) {
-          onLoginSuccess();
-        }
-      } catch (error) {
-        console.error("Failed to verify login status", error);
-        setErrorMessage('Could not verify login status. Please try to login again.');
-      }
-    };
-
-    checkLoginStatus();
-  }, [onLoginSuccess]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,11 +15,13 @@ const Login = ({ onLoginSuccess }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
-        credentials: 'include',
+        // Removed credentials: 'include', as we're no longer using cookies for auth
       });
       const data = await response.json();
 
       if (response.ok) {
+        // Store the JWT in localStorage or sessionStorage based on your security considerations
+        localStorage.setItem('token', data.access_token);
         onLoginSuccess();
       } else {
         setErrorMessage(data.message || 'Incorrect username or password.');

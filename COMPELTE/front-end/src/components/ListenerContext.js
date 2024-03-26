@@ -5,14 +5,14 @@ const ListenerContext = createContext();
 export const useListener = () => useContext(ListenerContext);
 
 export const ListenerProvider = ({ children }) => {
-  const [listenerConfig, setListenerConfig] = useState(null);
+  const [listenerConfigs, setListenerConfigs] = useState([]); // Initialize as an empty array
 
   const saveListenerConfig = (config) => {
-    setListenerConfig(config);
+    setListenerConfigs((prevConfigs) => [...prevConfigs, config]); // Append new config to the array
   };
 
   return (
-    <ListenerContext.Provider value={{ listenerConfig, saveListenerConfig }}>
+    <ListenerContext.Provider value={{ listenerConfigs, saveListenerConfig }}>
       {children}
     </ListenerContext.Provider>
   );

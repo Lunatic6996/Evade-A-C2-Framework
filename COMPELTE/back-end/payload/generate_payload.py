@@ -1,37 +1,28 @@
-from flask import Flask, request, jsonify, send_from_directory,session
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import subprocess
 import uuid
 import os
 import logging
 import threading
-from flask_socketio import SocketIO,emit
+from flask_socketio import SocketIO, emit
 import socket
 import json
-
 from werkzeug.security import check_password_hash, generate_password_hash
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from dotenv import load_dotenv
 
-# Import agent template functions
 from agent_templates import tcp_agent_template, http_agent_template, https_agent_template
 from tcp_server import start_tcp_server
-from database import init_db,db,Agent,Session  
+from database import init_db,db,Agent,Session,User  
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="http://localhost:3000")
 
-app.secret_key = '134j3b4k2jb34k2b3kh4'
-app.config['SESSION_COOKIE_NAME'] = 'PleaseStay'
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_PERMANENT'] = True
+load_dotenv()
 
-# Initialize Session
-#sess = Session()
-#sess.init_app(app)
-
-login_manager = LoginManager()
-login_manager.init_app(app)
+app.config['JWT_SECRET_KEY'] = 'your_jwt_secret_key'
+jwt = JWTManager(app)
 
 CORS(app, supports_credentials=True, origins='http://localhost:3000')
 
@@ -41,46 +32,55 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@127.0.0.1:5432/evade-c2'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Initialize the database with your app
 init_db(app)
-
-class User(UserMixin):
-    def __init__(self, username):
-        self.id = username  # Using username as the user identifier
 
 # Static users dictionary
 users = {'rochak': generate_password_hash('rochak')}
-
-# Adjusting user loader to work with static dictionary
-@login_manager.user_loader
-def load_user(user_id):
-    if user_id in users:
-        return User(user_id)
-    return None
 
 @app.route('/api/login', methods=['POST'])
 def login():
     username = request.json.get('username')
     password = request.json.get('password')
-    if username in users and check_password_hash(users[username], password):
-        user = User(username)
-        login_user(user)
-        session['logged_in'] = True
-        session.permanent = True
-        return jsonify({'logged_in': True}), 200
-    return jsonify({'logged_in': False, 'message': 'Invalid credentials'}), 401
+    user = User.query.filter_by(username=username).first()
+    
+    if user and check_password_hash(user.password_hash, password):
+        access_token = create_access_token(identity=username)
+        return jsonify(access_token=access_token), 200
+    else:
+        return jsonify({'message': 'Invalid credentials'}), 401
+
 
 @app.route('/api/logout', methods=['POST'])
-@login_required
+@jwt_required()
 def logout():
-    logout_user()
-    return jsonify({'logged_out': True}), 200
+    # JWT logout is handled client-side by removing the token, so this is just a placeholder
+    return jsonify({'message': 'User logged out successfully'}), 200
 
 @app.route('/api/check_login', methods=['GET'])
+@jwt_required()
 def check_login():
-    if current_user.is_authenticated:
-        return jsonify({'logged_in': True}), 200
-    return jsonify({'logged_in': False}), 200
+    current_user = get_jwt_identity()
+    if current_user:
+        return jsonify({'logged_in': True, 'user': current_user}), 200
+    return jsonify({'logged_in': False}), 401
+
+def create_update_default_admin():
+    with app.app_context():
+        admin_username = os.environ.get('DEFAULT_ADMIN_USERNAME')
+        admin_password = os.environ.get('DEFAULT_ADMIN_PASSWORD')
+        admin_user = User.query.filter_by(username=admin_username).first()
+        
+        if not admin_user:
+            # If the admin doesn't exist, create them
+            admin_user = User(username=admin_username, password_hash=generate_password_hash(admin_password))
+            db.session.add(admin_user)
+        else:
+            # Optionally, update the existing admin password
+            admin_user.password_hash = generate_password_hash(admin_password)
+        db.session.commit()
+
+
+create_update_default_admin()
 
 @app.route('/api/execute-command', methods=['POST'])
 def execute_command():

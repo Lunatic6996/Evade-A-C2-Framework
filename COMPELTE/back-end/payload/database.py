@@ -19,6 +19,12 @@ def init_db(app):
     db.init_app(app)
     with app.app_context():
         db.create_all()
+        
+class User(db.Model):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True)
+    username = Column(String(80), unique=True, nullable=False)
+    password_hash = Column(String(120), nullable=False)
 
 class Agent(db.Model):  # For use with Flask
     __tablename__ = 'agents'

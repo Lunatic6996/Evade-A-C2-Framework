@@ -4,10 +4,10 @@ import 'react-toastify/dist/ReactToastify.css';
 import { useListener } from './ListenerContext'; // Import the context
 
 function Listener() {
-  const { listenerConfig, saveListenerConfig } = useListener(); // Use the context
-  const [protocol, setProtocol] = useState(listenerConfig?.protocol || 'TCP');
-  const [localIP, setLocalIP] = useState(listenerConfig?.localIP || '');
-  const [port, setPort] = useState(listenerConfig?.port || '');
+  const { listenerConfigs, saveListenerConfig } = useListener(); // Adjusted to handle multiple configs
+  const [protocol, setProtocol] = useState('TCP');
+  const [localIP, setLocalIP] = useState('');
+  const [port, setPort] = useState('');
 
   // Handle form field changes
   const handleProtocolChange = (event) => {
@@ -45,7 +45,7 @@ function Listener() {
 
       if (response.ok) {
         toast.success(`Listener configured successfully: ${responseData.message}`);
-        saveListenerConfig(newListenerConfig); // This replaces setListenerConfigured(true);
+        saveListenerConfig(newListenerConfig); // Adapted for handling multiple configurations
       } else {
         toast.error(`Error: ${responseData.error}`);
       }
@@ -57,7 +57,7 @@ function Listener() {
 
   return (
     <div style={{ display: 'flex' }}>
-      <div style={{ flex: 1 }}>
+      <div style={{ minWidth: '50%' }}>
         <ToastContainer />
         <p>Welcome to Listener!</p>
         <p>You can create three different types of listener here: TCP, HTTP, and HTTPS.</p>
@@ -90,14 +90,20 @@ function Listener() {
         </div>
       </form>
       </div>
-      {listenerConfig && ( // This checks if listenerConfig exists
-        <div style={{ flex: 1 }}>
-          <h2>Configured Listener Details</h2>
-          <p>Protocol: {listenerConfig.protocol}</p>
-          <p>Local IP: {listenerConfig.localIP}</p>
-          <p>Port: {listenerConfig.port}</p>
-        </div>
-      )}
+      <div style={{ minWidth: '50%' }}>
+        <h2>Configured Listener Details</h2>
+        {listenerConfigs.length > 0 ? (
+          listenerConfigs.map((config, index) => (
+            <div key={index}>
+              <p>Protocol: {config.protocol}</p>
+              <p>Local IP: {config.localIP}</p>
+              <p>Port: {config.port}</p>
+            </div>
+          ))
+        ) : (
+          <p>No listener configured yet.</p>
+        )}
+      </div>
     </div>
   );
 }

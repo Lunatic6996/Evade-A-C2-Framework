@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import { AgentDataProvider } from './components/AgentDataContext';
-import { ListenerProvider } from './components/ListenerContext'; // Import the ListenerProvider
+import { ListenerProvider } from './components/ListenerContext';
 import NavigationBar from './components/NavigationBar';
 import Home from './components/Home';
 import Listener from './components/Listener';
@@ -11,25 +11,13 @@ import Documentation from './components/Documentation';
 import Login from './components/Login';
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(null); // null indicates the auth status is being checked
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentPage, setCurrentPage] = useState('Home');
 
   useEffect(() => {
-    const checkLoginStatus = async () => {
-      try {
-        const response = await fetch('http://127.0.0.1:5002/api/check_login', {
-          method: 'GET',
-          credentials: 'include', // Include credentials to ensure cookies are sent
-        });
-        const data = await response.json();
-        setIsLoggedIn(!!data.logged_in); // Update login state based on the response
-      } catch (error) {
-        console.error("Error verifying login status:", error);
-        setIsLoggedIn(false); // Assume not logged in if there's an error
-      }
-    };
-
-    checkLoginStatus();
+    // Immediately check if a JWT token exists in localStorage to assume logged in status
+    const token = localStorage.getItem('token');
+    setIsLoggedIn(!!token); // Sets to true if token exists, otherwise false
   }, []);
 
   const handleLoginSuccess = () => {
@@ -38,23 +26,15 @@ function App() {
   };
 
   const handleLogout = async () => {
-    try {
-      const response = await fetch('http://127.0.0.1:5002/api/logout', {
-        method: 'POST',
-        credentials: 'include', // Include credentials to ensure cookies are sent
-      });
-      if (response.ok) {
-        setIsLoggedIn(false);
-        setCurrentPage('Login'); // Redirect to login upon successful logout
-      }
-    } catch (error) {
-      console.error("Error logging out:", error);
-    }
+    // Remove the JWT token from localStorage to "log out" the user
+    localStorage.removeItem('token');
+    setIsLoggedIn(false);
+    setCurrentPage('Login'); // Redirect to login page
   };
 
   const renderPage = () => {
     if (isLoggedIn === null) {
-      return <div>Loading...</div>; // Show loading or a splash screen while checking login status
+      return <div>Loading...</div>; // This can be removed or adjusted as per the new logic
     } else if (!isLoggedIn) {
       return <Login onLoginSuccess={handleLoginSuccess} />;
     } else {
@@ -69,8 +49,8 @@ function App() {
   };
 
   return (
-    <AgentDataProvider> {/* Wrap the application within AgentDataProvider */}
-      <ListenerProvider> {/* Additionally, wrap the application or relevant parts with ListenerProvider */}
+    <AgentDataProvider>
+      <ListenerProvider>
         <div className="App">
           {isLoggedIn && <NavigationBar setCurrentPage={setCurrentPage} onLogout={handleLogout} isLoggedIn={isLoggedIn} />}
           {renderPage()}
