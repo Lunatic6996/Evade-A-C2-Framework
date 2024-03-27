@@ -96,7 +96,7 @@ def execute_command():
         s.sendall(message.encode('utf-8'))
 
         # Wait for acknowledgment or response from the TCP server
-        response = s.recv(1024).decode('utf-8')
+        response = s.recv(4092).decode('utf-8')
         print("------------------------------------")
         print(f'Received: {response}')
         print("------------------------------------")

