@@ -81,8 +81,20 @@ function InteractModal({ agentId, onClose }) {
     <div className="interact-modal">
       <div className="interact-modal-content">
         <span className="interact-close-button" onClick={onClose}>&times;</span>
-        <h2>Interact with Agent: {agentId}</h2>
-        <form onSubmit={handleCommandSubmit} className="interact-form">
+        <div className="files-upload-section">
+          <input type="file" onChange={handleFileSelect} className="file-input" />
+          <button onClick={handleFileUpload} className="interact-upload-button">Upload</button>
+          <h2>Files Available for Upload:</h2>
+          <ul className="files-list">
+            {filesList.map(file => (
+              <li key={file}>{file}</li>
+            ))}
+          </ul>
+        </div>
+        <div className="response-section">
+          <div className="interact-command-output">{output}</div>
+        </div>
+        <div className="command-input-section">
           <input
             type="text"
             value={command}
@@ -90,17 +102,8 @@ function InteractModal({ agentId, onClose }) {
             placeholder="Enter command"
             className="interact-command-input"
           />
-          <input type="file" onChange={handleFileSelect} />
-          <button type="button" onClick={handleFileUpload} className="interact-submit-button">Upload File</button>
-          <button type="submit" className="interact-submit-button">Send Command</button>
-        </form>
-        <div className="interact-command-output">{output}</div>
-        <h2>Files Available for Upload:</h2>
-        <ul>
-          {filesList.map(file => (
-            <li key={file}>{file}</li>
-          ))}
-        </ul>
+          <button type="submit" onClick={handleCommandSubmit} className="interact-submit-button">Send</button>
+        </div>
       </div>
     </div>
   );
