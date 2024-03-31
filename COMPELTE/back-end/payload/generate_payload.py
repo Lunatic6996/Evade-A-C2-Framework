@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
+from string import Template
 import subprocess
 import uuid
 import os
@@ -14,7 +15,7 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 from dotenv import load_dotenv
 
 from agent_templates import tcp_agent_template, http_agent_template, https_agent_template
-from tcp_server import start_tcp_server
+from Servers.tcp_server import start_tcp_server
 from database import init_db,db,Agent,Session,User  
 
 app = Flask(__name__)
@@ -146,6 +147,8 @@ def configure_listener():
     if not protocol or not port:
         return jsonify({'error': 'Missing required fields'}), 400
 
+    print(data)
+
     if protocol.lower() == 'tcp':
         # Check if the port is already in use
         try:
@@ -162,17 +165,102 @@ def configure_listener():
         except Exception as e:
             return jsonify({'error': f'Failed to start TCP listener: {str(e)}'}), 500
 
-    if protocol.lower() == 'http':
-        #start_http_server()
-        pass
+    elif protocol.lower() == 'http':
+        try:
+            # Load the template
+            template_path = r'E:\Github\Repos\Evade-A-C2-Framework\COMPELTE\back-end\payload\Servers\http\nginx_http.conf.template'
+            nginx_conf_path = r'D:\nginx\nginx-1.22.1\conf\nginx.conf'
 
-    if protocol.lower() == 'https':
-        #start_https_server()
-        pass
+            with open(template_path, 'r') as file:
+                template_content = Template(file.read())
 
-    print({'message': f'Listener configured for {protocol} on {localIP} port {port}'})
-    return jsonify({'message': f'Listener configured for {protocol} on {localIP} port {port}'}), 200
+            # Substitute the placeholders with actual values
+            nginx_config = template_content.substitute(PORT=str(port), SERVER_NAME=localIP)
+
+            with open(nginx_conf_path, 'w') as file:
+                file.write(nginx_config)
+
+            # Define the path to the Nginx executable and its directory
+            nginx_exe_path = r'D:\nginx\nginx-1.22.1\nginx.exe'
+            nginx_dir = r'D:\nginx\nginx-1.22.1'
+
+            # Command to reload Nginx on Windows
+            try:
+                # Change the working directory to the Nginx directory and reload Nginx
+                subprocess.run([nginx_exe_path, '-s', 'reload'], check=True, cwd=nginx_dir)
+                return jsonify({'message': f'HTTP server configured on {localIP}:{port}'}), 200
+            except Exception as error:
+                print(error)  # Use logging in production for better error logging
+                return jsonify({'error': 'Failed to update Nginx configuration'}), 500
+        except Exception as error:
+            print(error)  # Use logging in production environments
+            return jsonify({'error': 'Failed to update Nginx configuration'}), 500
+
+    elif protocol.lower() == 'https':
+        cert_dir = r'E:\Github\Repos\Evade-A-C2-Framework\COMPELTE\back-end\payload\Servers\https\certs'
+        openssl_path = r'E:\GIT\Git\usr\bin\openssl.exe'
+        cnf_template_path = r'E:\Github\Repos\Evade-A-C2-Framework\COMPELTE\back-end\payload\Servers\https\openssl_template\openssl.cnf.template'
+        nginx_conf_path = r'D:\nginx\nginx-1.22.1\conf\nginx.conf'
+        template_path = r'E:\Github\Repos\Evade-A-C2-Framework\COMPELTE\back-end\payload\Servers\https\nginx_https.conf.template'
+        
+        # Ensure the certs directory exists
+        os.makedirs(cert_dir, exist_ok=True)
+
+        # Generate SSL certificate
+        try:
+            # OpenSSL Config
+            with open(cnf_template_path, 'r') as file:
+                template = Template(file.read())
+            # Make sure to match the case and spelling of your placeholder keys
+            content = template.substitute(USER_IP=localIP)  # Use 'USER_IP' here to match your template
+            with open(os.path.join(cert_dir, 'openssl.cnf'), 'w') as file:
+                file.write(content)
+
+            # SSL Generation
+            subprocess.run([
+                openssl_path, 'req', '-newkey', 'rsa:2048', '-nodes',
+                '-keyout', os.path.join(cert_dir, 'server.key'), '-x509', '-days', '365',
+                '-out', os.path.join(cert_dir, 'server.crt'),
+                '-config', os.path.join(cert_dir, 'openssl.cnf'),
+                '-extensions', 'req_ext'
+            ], check=True)
+            
+            print("Created SSL cert and openssl conf file")
+
+            ssl_cert_path = os.path.join(cert_dir, 'server.crt').replace('\\', '/')
+            ssl_key_path = os.path.join(cert_dir, 'server.key').replace('\\', '/')    
+
+
     
+            with open(template_path, 'r') as file:
+                template_content = Template(file.read())
+
+            # Substitute placeholders including SSL paths
+            nginx_config = template_content.substitute(PORT=str(port), SERVER_NAME=localIP,
+                                                    SSL_CERT=ssl_cert_path, SSL_KEY=ssl_key_path)
+
+            with open(nginx_conf_path, 'w') as file:  # Note the 'a' mode for appending
+                file.write(nginx_config)
+
+            # Define the path to the Nginx executable and its directory
+            nginx_exe_path = r'D:\nginx\nginx-1.22.1\nginx.exe'
+            nginx_dir = r'D:\nginx\nginx-1.22.1'
+
+            # Command to reload Nginx on Windows
+            try:
+                # Change the working directory to the Nginx directory and reload Nginx
+                subprocess.run([nginx_exe_path, '-s', 'reload'], check=True, cwd=nginx_dir)
+                return jsonify({'message': f'HTTPS server configured on {localIP}:{port}'}), 200
+            except Exception as error:
+                print(error)  # Use logging in production for better error logging
+                return jsonify({'error': 'Failed to update Nginx configuration'}), 500
+        
+
+        except Exception as error:
+            print(error)  # Logging the error
+            return jsonify({'error': 'Failed to configure HTTPS in Nginx'}), 500
+
+
 
 @app.route('/download/<filename>')
 def download_payload(filename):
@@ -313,18 +401,22 @@ def handle_connect():
     # Optionally, you can emit a message back to the newly connected client
     emit('connection_status', {'message': 'Successfully connected to the server'})
 
-def notify_frontend(agent_id):
-    """Function to notify the frontend about an agent's status."""
+def notify_frontend(agent_id, agent_name=None):
+    """Function to notify the frontend about an agent's status, including the agent's name."""
     with app.app_context():
         session = Session()
         agent = session.query(Agent).filter_by(agent_id=agent_id).first()
         if agent:
-            print(f"Agent Data: ID={agent.agent_id}, Protocol={agent.protocol}, Last Seen={agent.last_seen}")
+            # Include agent name in the print statement if available
+            agent_info = f"Agent Data: ID={agent.agent_id}, Name={agent_name or 'Unknown'}, Protocol={agent.protocol}, Last Seen={agent.last_seen}"
+            print(agent_info)
             print("-------------------------------------------------------")
             print("EMIT EMIT")
             print("-------------------------------------------------------")
+            # Include agent's name in the data sent to the frontend
             socketio.emit('agent_update', {
                 'agent_id': agent.agent_id,
+                'agent_name': agent_name or 'Unknown',  # Use the provided name or fallback to 'Unknown'
                 'protocol': agent.protocol,
                 'last_seen': agent.last_seen.strftime('%Y-%m-%d %H:%M:%S')
             })
@@ -334,11 +426,14 @@ def notify_frontend(agent_id):
 def notify_agent_connection():
     data = request.json
     agent_id = data.get('agent_id')
+    agent_name = data.get('agent_name')  # Retrieve agent's name from the request data
+
     if agent_id:
-        # Assuming notify_frontend is already defined and emits a WebSocket message
-        notify_frontend(agent_id)
-        return jsonify({'status': 'success'}), 200
+        # Pass both agent_id and agent_name to the notify_frontend function
+        notify_frontend(agent_id, agent_name)
+        return jsonify({'status': 'success', 'agent_name': agent_name}), 200
     return jsonify({'error': 'Missing agent_id'}), 400
+
 
 if __name__ == "__main__":
     #app.run(debug=True, port=5002)

@@ -1,0 +1,31 @@
+worker_processes  1;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    sendfile        on;
+    keepalive_timeout  65;
+
+    server {
+        listen ${PORT} ssl;
+        server_name ${SERVER_NAME};
+
+        ssl_certificate ${SSL_CERT};
+        ssl_certificate_key ${SSL_KEY};
+
+        location / {
+            proxy_pass http://127.0.0.1:5678; # Forward requests to Flask app
+            #include /path/to/nginx/proxy_params;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $$http_upgrade; 
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $$host; 
+            proxy_cache_bypass $$http_upgrade; 
+        }
+    }
+}

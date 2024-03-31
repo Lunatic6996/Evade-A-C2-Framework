@@ -15,12 +15,9 @@ export const AgentDataProvider = ({ children }) => {
   useEffect(() => {
     socket.on('agent_update', (newAgent) => {
       setAgents((prevAgents) => [...prevAgents, newAgent]);
-      // Display toast for the callback
-      if (newAgent && newAgent.agent_id) {
-        toast.info(`Callback from agent ${newAgent.agent_id}`);
-      } else {
-        toast.info('Callback from an agent');
-      }
+      // Prefer to display agent's name, fallback to agent ID if name is not available
+      const displayInfo = newAgent.agent_name || `Agent ${newAgent.agent_id}`;
+      toast.info(`Callback from ${displayInfo}`);
     });
 
     // Cleanup on unmount

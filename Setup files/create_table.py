@@ -2,7 +2,7 @@ import psycopg2
 from psycopg2 import sql
 
 # Connection string
-conn_string = "host=127.0.0.1 port=5432 dbname=evade-c2 user=postgres password=postgres sslmode=prefer connect_timeout=10"
+conn_string = "host=127.0.0.1 port=5432 dbname=Evade user=postgres password=postgres sslmode=prefer connect_timeout=10"
 
 # Connect to the PostgreSQL database
 connection = psycopg2.connect(conn_string)

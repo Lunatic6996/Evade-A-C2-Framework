@@ -20,7 +20,7 @@ def init_db(app):
     with app.app_context():
         db.create_all()
         
-class User(db.Model):
+class User(db.Model): # For use with Flask
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
     username = Column(String(80), unique=True, nullable=False)
