@@ -11,10 +11,10 @@ ST = SomeState
 L = SomeCity
 O = YourOrganization
 OU = YourUnit
-CN = 192.168.1.224
+CN = 127.0.0.1
 
 [req_ext]
 subjectAltName = @alt_names
 
 [alt_names]
-IP.1 = 192.168.1.224
+IP.1 = 127.0.0.1
