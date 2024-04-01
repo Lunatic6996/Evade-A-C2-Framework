@@ -21,7 +21,32 @@ function Listener() {
   const handlePortChange = (event) => {
     setPort(event.target.value);
   };
-                            
+
+
+  const handleStopListener = async (protocol, localIP, port) => {
+    try {
+      const response = await fetch('http://127.0.0.1:5002/api/remove-listener', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ protocol, localIP, port }),
+      });
+      const responseData = await response.json();
+  
+      if (response.ok) {
+        toast.success(`Listener stopped successfully: ${responseData.message}`);
+        // Optionally, update the UI or state as needed
+      } else {
+        toast.error(`Error stopping listener: ${responseData.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to stop listener', error);
+      toast.error('Failed to send stop listener request to the server.');
+    }
+  };
+  
+                          
   // Handle form submission
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -44,11 +69,17 @@ function Listener() {
       const responseData = await response.json();
 
       if (response.ok) {
-        toast.success(`Listener configured successfully: ${responseData.message}`);
-        saveListenerConfig(newListenerConfig); // Adapted for handling multiple configurations
+        // Assuming "responseData.message" contains the specific message for already configured server
+        if (responseData.message.includes("already configured")) {
+            toast.info(`Listener already configured: ${responseData.message}`);
+        } else {
+            toast.success(`Listener configured successfully: ${responseData.message}`);
+            saveListenerConfig(newListenerConfig); // Adapted for handling multiple configurations
+        }
       } else {
-        toast.error(`Error: ${responseData.error}`);
+          toast.error(`Error: ${responseData.error}`);
       }
+    
     } catch (error) {
       console.error('Failed to configure listener', error);
       toast.error('Failed to send listener configuration to the server.');
@@ -98,8 +129,9 @@ function Listener() {
               <p>Protocol: {config.protocol}</p>
               <p>Local IP: {config.localIP}</p>
               <p>Port: {config.port}</p>
+              <button onClick={() => handleStopListener(config.protocol, config.localIP, config.port)}>Stop Listener</button>
             </div>
-          ))
+          ))          
         ) : (
           <p>No listener configured yet.</p>
         )}

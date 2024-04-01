@@ -171,7 +171,7 @@ def configure_listener():
             return jsonify({'error': f'Failed to start TCP listener: {str(e)}'}), 500
 
     elif protocol.lower() == 'http':
-         
+    
        # Load the template
         template_path = r'E:\Github\Repos\Evade-A-C2-Framework\COMPELTE\back-end\payload\Servers\http\nginx_http.conf.template'
         with open(template_path, 'r') as file:
@@ -185,15 +185,14 @@ def configure_listener():
             with open(nginx_conf_path, 'r') as file:
                 nginx_config = file.read()
 
-            # Define a more specific pattern that matches the entire server block, including the port and potentially the server_name
-            pattern = rf'server\s*\{{[^}}]*listen\s+{port};[^}}]*server_name\s+{localIP};[^}}]*\}}'
-
             # Check if the specific server block already exists
-            if re.search(pattern, nginx_config, re.DOTALL):
+            pattern = rf'server\s*{{.*?listen\s+{port};.*?server_name\s+{localIP};.*?}}'
+            match = re.search(pattern, nginx_config, re.DOTALL)
+            if match:
                 return jsonify({'message': f'HTTP server already configured for {localIP}:{port}'}), 200
             else:
                 # Append the new server block directly under the http context
-                insertion_point = nginx_config.find('http {') + len('http {')
+                insertion_point = nginx_config.rfind('}')
                 nginx_config = nginx_config[:insertion_point] + '\n' + server_block + nginx_config[insertion_point:]
 
                 # Write the updated config back to nginx.conf
@@ -209,7 +208,8 @@ def configure_listener():
             return jsonify({'error': 'Failed to update Nginx configuration for HTTP'}), 500
 
     elif protocol.lower() == 'https':
-        cert_dir = r'E:\Github\Repos\Evade-A-C2-Framework\COMPELTE\back-end\payload\Servers\https\certs'
+        ip_sanitized = localIP.replace(".", "_")  # Sanitize the IP address for file naming
+        cert_dir = os.path.join(r'E:\Github\Repos\Evade-A-C2-Framework\COMPELTE\back-end\payload\Servers\https\certs', ip_sanitized)
         openssl_path = r'E:\GIT\Git\usr\bin\openssl.exe'
         cnf_template_path = r'E:\Github\Repos\Evade-A-C2-Framework\COMPELTE\back-end\payload\Servers\https\openssl_template\openssl.cnf.template'
         template_path = r'E:\Github\Repos\Evade-A-C2-Framework\COMPELTE\back-end\payload\Servers\https\nginx_https.conf.template'
@@ -218,22 +218,29 @@ def configure_listener():
         # Ensure the certs directory exists
         os.makedirs(cert_dir, exist_ok=True)
 
+        ssl_cert_path = os.path.join(cert_dir, f'{ip_sanitized}_server.crt')
+        ssl_key_path = os.path.join(cert_dir, f'{ip_sanitized}_server.key')
+        if os.path.exists(ssl_cert_path) and os.path.exists(ssl_key_path):
+            ssl_exists = True
+        else:
+            ssl_exists = False
         try:
+            if not ssl_exists:
             # OpenSSL Config
-            with open(cnf_template_path, 'r') as file:
-                cnf_template = Template(file.read())
-            cnf_content = cnf_template.substitute(USER_IP=localIP)
-            cnf_output_path = os.path.join(cert_dir, 'openssl.cnf')
-            with open(cnf_output_path, 'w') as file:
-                file.write(cnf_content)
+                with open(cnf_template_path, 'r') as file:
+                    cnf_template = Template(file.read())
+                cnf_content = cnf_template.substitute(USER_IP=localIP)
+                cnf_output_path = os.path.join(cert_dir, 'openssl.cnf')
+                with open(cnf_output_path, 'w') as file:
+                    file.write(cnf_content)
 
-            # SSL Generation
-            subprocess.run([
-                openssl_path, 'req', '-newkey', 'rsa:2048', '-nodes',
-                '-keyout', os.path.join(cert_dir, 'server.key'), '-x509', '-days', '365',
-                '-out', os.path.join(cert_dir, 'server.crt'),
-                '-config', cnf_output_path, '-extensions', 'req_ext'
-            ], check=True)
+                # SSL Generation
+                subprocess.run([
+                    openssl_path, 'req', '-newkey', 'rsa:2048', '-nodes',
+                    '-keyout', os.path.join(cert_dir, 'server.key'), '-x509', '-days', '365',
+                    '-out', os.path.join(cert_dir, 'server.crt'),
+                    '-config', cnf_output_path, '-extensions', 'req_ext'
+                ], check=True)
 
             # Nginx HTTPS Server Block
             with open(template_path, 'r') as file:
@@ -245,22 +252,60 @@ def configure_listener():
             # Read the current nginx.conf and insert the new HTTPS server block
             with open(nginx_conf_path, 'r') as file:
                 nginx_config = file.read()
-            
-            # Insert the server block correctly within the http context
-            http_context_end = nginx_config.rfind("}")  # Assuming the last '}' is the end of the http context
-            new_nginx_config = nginx_config[:http_context_end] + "\n" + server_block + "\n" + nginx_config[http_context_end:]
+                pattern = rf'server\s*\{{.*?listen\s+{port}.*?server_name\s+{localIP}.*?\}}'
+                if re.search(pattern, nginx_config, re.DOTALL):
+                    return jsonify({'message': f'Server block for {localIP}:{port} already configured.'}), 200
+                else:
+                    # Insert the server block correctly within the http context
+                    http_context_end = nginx_config.rfind("}")  # Assuming the last '}' is the end of the http context
+                    new_nginx_config = nginx_config[:http_context_end] + "\n" + server_block + "\n" + nginx_config[http_context_end:]
 
-            # Write the updated nginx config back to the file
-            with open(nginx_conf_path, 'w') as file:
-                file.write(new_nginx_config)
+                    # Write the updated nginx config back to the file
+                    with open(nginx_conf_path, 'w') as file:
+                        file.write(new_nginx_config)
 
-            # Reload Nginx
-            subprocess.run([nginx_exe_path, '-s', 'reload'], check=True, cwd=nginx_dir)
-            return jsonify({'message': f'HTTPS server configured on {localIP}:{port} with SSL'}), 200
+                    # Reload Nginx
+                    subprocess.run([nginx_exe_path, '-s', 'reload'], check=True, cwd=nginx_dir)
+                    return jsonify({'message': f'HTTPS server configured on {localIP}:{port} with SSL'}), 200
 
         except Exception as error:
             print(f"Error configuring HTTPS: {error}")
             return jsonify({'error': str(error)}), 500
+
+@app.route('/api/remove-listener', methods=['POST'])
+def remove_listener():
+    data = request.get_json()
+    protocol = data.get('protocol').lower()
+    ip_address = data['localIP']
+    port = data['port']
+    nginx_conf_path = r'D:\nginx\nginx-1.22.1\conf\nginx.conf'
+    nginx_exe_path = r'D:\nginx\nginx-1.22.1\nginx.exe'
+    nginx_dir = r'D:\nginx\nginx-1.22.1'
+
+    try:
+        with open(nginx_conf_path, 'r+') as file:
+            nginx_config = file.read()
+            
+            # Adjust the pattern to ensure it captures the closing bracket of the server block
+            # and handles whitespace around the block
+            ssl_suffix = " ssl" if protocol == 'https' else ""
+            pattern = rf'\s*server\s*\{{.*?listen\s+{port}{ssl_suffix};.*?server_name\s+{ip_address};.*?\}}\s*'
+
+            # Check if the specific server block exists and remove it
+            if re.search(pattern, nginx_config, flags=re.DOTALL):
+                new_config = re.sub(pattern, '', nginx_config, flags=re.DOTALL).strip()
+                file.seek(0)
+                file.write(new_config)
+                file.truncate()  # Remove leftover content
+            else:
+                return jsonify({'message': 'No matching listener found to remove'}), 200
+
+        # Reload Nginx to apply changes
+        subprocess.run([nginx_exe_path, '-s', 'reload'], check=True, cwd=nginx_dir)
+        return jsonify({'message': 'Listener removed successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/download/<filename>')
 def download_payload(filename):
