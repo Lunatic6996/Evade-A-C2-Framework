@@ -282,31 +282,32 @@ def remove_listener():
     nginx_exe_path = r'D:\nginx\nginx-1.22.1\nginx.exe'
     nginx_dir = r'D:\nginx\nginx-1.22.1'
 
+    # Construct the pattern to find the comment and its server block
+    comment_pattern = fr"\s*#\[{protocol.upper()}\|{ip_address}\|{port}\]\s*"
+    server_block_pattern = fr"server\s*\{{(?:[^}}]|\}}(?!\}}))*\}}"
+    combined_pattern = comment_pattern + server_block_pattern
+
     try:
-        with open(nginx_conf_path, 'r+') as file:
+        with open(nginx_conf_path, 'r') as file:
             nginx_config = file.read()
-            
-            # Adjust the pattern to ensure it captures the closing bracket of the server block
-            # and handles whitespace around the block
-            ssl_suffix = " ssl" if protocol == 'https' else ""
-            pattern = rf'\s*server\s*\{{.*?listen\s+{port}{ssl_suffix};.*?server_name\s+{ip_address};.*?\}}\s*'
 
-            # Check if the specific server block exists and remove it
-            if re.search(pattern, nginx_config, flags=re.DOTALL):
-                new_config = re.sub(pattern, '', nginx_config, flags=re.DOTALL).strip()
-                file.seek(0)
-                file.write(new_config)
-                file.truncate()  # Remove leftover content
-            else:
-                return jsonify({'message': 'No matching listener found to remove'}), 200
+        # Find and remove the server block with its comment
+        new_config, num_replacements = re.subn(combined_pattern, '', nginx_config, flags=re.DOTALL)
 
-        # Reload Nginx to apply changes
+        if num_replacements == 0:
+            return jsonify({'message': 'No matching listener found to remove'}), 404
+
+        # Write the updated configuration back to the nginx.conf
+        with open(nginx_conf_path, 'w') as file:
+            file.write(new_config+"\n}\n")
+
+        # Reload Nginx to apply the changes
         subprocess.run([nginx_exe_path, '-s', 'reload'], check=True, cwd=nginx_dir)
         return jsonify({'message': 'Listener removed successfully'}), 200
+
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
+        return jsonify({'error': f'Failed to remove listener: {str(e)}'}), 500
+    
 @app.route('/download/<filename>')
 def download_payload(filename):
     try:

@@ -1,3 +1,4 @@
+#[HTTP|${SERVER_NAME}|${PORT}]
 server {
     listen ${PORT};
     server_name ${SERVER_NAME};
