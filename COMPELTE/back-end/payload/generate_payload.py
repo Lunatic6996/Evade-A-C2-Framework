@@ -17,7 +17,8 @@ from dotenv import load_dotenv
 
 from agent_templates import tcp_agent_template, http_agent_template, https_agent_template
 from Servers.tcp.tcp_server import start_tcp_server
-from database import init_db,db,Agent,Session,User  
+from database import init_db,db,Agent,Session,User,Command
+import requests
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="http://localhost:3000")
@@ -91,7 +92,7 @@ def create_update_default_admin():
 
 create_update_default_admin()
 
-@app.route('/api/execute-command', methods=['POST'])
+@app.route('/api/execute-command/TCP', methods=['POST'])
 def execute_command():
     data = request.get_json()
     agent_id = data.get('agentId')
@@ -112,6 +113,34 @@ def execute_command():
         print("------------------------------------")
 
     return jsonify({'status': 'Command sent to TCP server', 'response': response}), 200
+
+@app.route('/api/execute-command/HTTP', methods=['POST'])
+def execute_command_http():
+    data = request.get_json()  # Get data from the incoming request
+    agent_id = data.get('agentId')  # Use lower case for JSON keys
+    command = data.get('command')
+    print(data)
+    if not agent_id or not command:
+        return jsonify({'error': 'Missing required fields: agent_id or command'}), 400
+
+    # Prepare data for the outgoing request
+    endpoint = "http://127.0.0.1:5678/send_command"
+    headers = {'Content-Type': 'application/json'}
+
+    try:
+        response = requests.post(endpoint, json=data, headers=headers)
+        print(f"Data sent to {endpoint}: {data}")
+        print(f"Response from server: {response.text}")
+        return jsonify({'message': 'Data sent successfully', 'response':'Executed successfully'}), 200
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to send data: {str(e)}")
+        return jsonify({'error': 'Failed to communicate with command server'}), 500
+
+
+@app.route('/api/execute-command/HTTPS', methods=['POST'])
+def execute_command_https():
+    # Specific logic for handling HTTPS commands
+    pass
 
 # Flask route to handle file uploads in your backend
 @app.route('/upload', methods=['POST'])

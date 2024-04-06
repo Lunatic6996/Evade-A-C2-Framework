@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './InteractModal.css'; // Import the CSS file specifically for InteractModal
 
-function InteractModal({ agentId, onClose }) {
+function InteractModal({ agentId, protocol, onClose }) {
+  console.log("Current protocol:", protocol);  // Just to illustrate usage
   const [command, setCommand] = useState('');
   const [output, setOutput] = useState('');
   const [selectedFile, setSelectedFile] = useState(null); // State to handle the selected file
@@ -52,29 +53,33 @@ function InteractModal({ agentId, onClose }) {
     }
   };
 
-  // Function to handle command submission
   const handleCommandSubmit = async (e) => {
     e.preventDefault();
-    setOutput('Processing...');
+    setOutput('Processing...');  // Inform the user that the command is being processed
+  
+    const endpoint = `http://127.0.0.1:5002/api/execute-command/${protocol}`; // Ensure `protocol` is correctly set
+  
     try {
-      const response = await fetch('http://127.0.0.1:5002/api/execute-command', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentId, command }),
+        body: JSON.stringify({ agentId, command }),  // Make sure agentId and command are correctly captured from state or props
       });
-      const data = await response.json();
+      const data = await response.json();  // Parse the JSON response from the server
+  
       if (response.ok) {
-        console.log(data.response); // Make sure to access the correct property from the response data
-        setOutput(data.response); // Set the output to the response received from the backend
+        console.log(data.response);  // Log the server's response
+        setOutput(data.response);  // Update the UI with the server's response
       } else {
-        setOutput('Error: ' + (data.error || 'Failed to execute command'));
+        // Handle HTTP errors by displaying a more detailed error message
+        setOutput(`Error: ${data.error || 'Failed to execute command'}`);
       }
     } catch (error) {
-      console.error('Failed to send command', error);
-      setOutput('Network error: Failed to send command');
+      console.error('Failed to send command', error);  // Log network or other errors to the console
+      setOutput(`Network error: ${error.message || 'Failed to send command'}`);
     }
-
-    setCommand('');
+  
+    setCommand('');  // Clear the command input field
   };
 
   return (
