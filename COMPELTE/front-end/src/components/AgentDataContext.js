@@ -9,28 +9,27 @@ const socket = io('http://127.0.0.1:5002');
 const AgentDataContext = createContext();
 
 export const AgentDataProvider = ({ children }) => {
-  const [agents, setAgents] = useState([]);
+    const [agents, setAgents] = useState([]);
 
-  // Listen for agent updates
-  useEffect(() => {
-    socket.on('agent_update', (newAgent) => {
-      setAgents((prevAgents) => [...prevAgents, newAgent]);
-      // Prefer to display agent's name, fallback to agent ID if name is not available
-      const displayInfo = newAgent.agent_name || `Agent ${newAgent.agent_id}`;
-      toast.info(`Callback from ${displayInfo}`);
-    });
+    useEffect(() => {
+        socket.on('agent_update', (newAgent) => {
+            setAgents(prevAgents => [...prevAgents, newAgent]);
+            // Construct a detailed notification message including type, name, and address
+            const notificationMessage = `Callback from ${newAgent.protocol || 'Unknown'} agent ${newAgent.agent_name || `Agent ${newAgent.agent_id}`} from IP:PORT ${newAgent.address || 'Unknown address'}.`;
+            toast.info(notificationMessage);
+        });
 
-    // Cleanup on unmount
-    return () => {
-      socket.off('agent_update');
-    };
-  }, []);
+        // Cleanup on unmount
+        return () => {
+            socket.off('agent_update');
+        };
+    }, []);
 
-  return (
-    <AgentDataContext.Provider value={{ agents, setAgents }}>
-      {children}
-    </AgentDataContext.Provider>
-  );
+    return (
+        <AgentDataContext.Provider value={{ agents, setAgents }}>
+            {children}
+        </AgentDataContext.Provider>
+    );
 };
 
 export const useAgentData = () => useContext(AgentDataContext);

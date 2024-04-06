@@ -2,6 +2,7 @@ import os
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_socketio import SocketIO
 from werkzeug.utils import secure_filename
+from database import Session, Agent
 
 app = Flask(__name__)
 socketio = SocketIO(app)

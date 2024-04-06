@@ -7,7 +7,7 @@ app = Flask(__name__)
 socketio = SocketIO(app)
 
 # Define separate directories for uploads and downloads
-BASE_DIR = 'E:\\Github\\Repos\\Evade-A-C2-Framework\\test\\persistance\\https'
+BASE_DIR = r'E:\\Github\Repos\\Evade-A-C2-Framework\\COMPELTE\\back-end\\https'
 UPLOADS_FOLDER = os.path.join(BASE_DIR, 'uploads_to_agents')
 DOWNLOADS_FOLDER = os.path.join(BASE_DIR, 'downloads_from_agents')
 
@@ -117,8 +117,8 @@ def list_files_for_agent(agent_id):
         return jsonify({'error': 'No files found for the specified agent'}), 404
 
 if __name__ == '__main__':
-    ssl_cert = r'E:\\Github\\Repos\\Evade-A-C2-Framework\\test\\persistance\\https\\server.crt'
-    ssl_key = r'E:\\Github\\Repos\\Evade-A-C2-Framework\\test\\persistance\\https\\server.key'
+    ssl_cert = r'E:\\Github\Repos\\Evade-A-C2-Framework\\COMPELTE\\back-end\\https\\server.crt'
+    ssl_key = r'E:\\Github\Repos\\Evade-A-C2-Framework\\COMPELTE\\back-end\\https\\server.key'
     socketio.run(app, debug=True, host='0.0.0.0', port=5001, ssl_context=(ssl_cert, ssl_key), allow_unsafe_werkzeug=True)
     #socketio.run(app, debug=True, port=5001, ssl_context=(ssl_cert, ssl_key),allow_unsafe_werkzeug=True)
 

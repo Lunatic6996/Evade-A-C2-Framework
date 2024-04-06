@@ -11,11 +11,12 @@ backend_connection = None
 # Fixed port for receiving commands from the backend
 COMMAND_PORT = 62347
 
-def notify_flask_about_agent_connection(agent_id, agent_name):
+def notify_flask_about_agent_connection(agent_id, agent_name,addr):
     url = 'http://localhost:5002/api/notify-agent-connection'
     data = {
         'agent_id': agent_id,
-        'agent_name': agent_name  # Include agent's name
+        'agent_name': agent_name,
+        'addr' : addr
     }
     try:
         requests.post(url, json=data)
@@ -38,7 +39,7 @@ def handle_agent_connection(conn, addr):
                     agent_name = agent.extra_data.get("name") 
                     print(agent_name)
                     '''Here i need to inform flask about connection with name not with the id.'''
-                    notify_flask_about_agent_connection(agent_id, agent_name)
+                    notify_flask_about_agent_connection(agent_id, agent_name,addr)
                 else:
                     print(f"Unrecognized agent: {agent_id}. Connection refused.")
                     conn.close()
@@ -242,6 +243,7 @@ def handle_command_connection(conn, addr):
             command_json = json.loads(command_data)
             agent_id = command_json.get('agent_id')
             command = command_json.get('command')
+            # if this commnad is shutdown
             if agent_id and command:
                 # Check if the agent connection exists
                 agent_conn = agent_connections.get(agent_id)
