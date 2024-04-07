@@ -68,7 +68,6 @@ def register_agent():
     # Fallback return, in case none of the above conditions are met
     return jsonify({'error': 'Unexpected error occurred'}), 500
 
-current_output=None
 
 @app.route('/send_command', methods=['POST'])
 def send_command():
@@ -91,8 +90,7 @@ def send_command():
     if agent_id in agents:
         agents[agent_id]['command'] = command
         print(f"Command set for agent {agent_id}: {command}")  # More specific print statement
-        time.sleep(1)
-        return jsonify({'message': 'Command sent successfully','response':current_output}), 200
+        return jsonify({'message': 'Command sent successfully'}), 200
     else:
         return jsonify({'error': 'Agent not found'}), 404
 
@@ -127,12 +125,17 @@ def send_output():
             return jsonify({'error': str(e)}), 500
     else:
         output = request.form.get('output')
-        current_output=output
         if not output:
             return jsonify({'error': 'Missing output data'}), 400
-        print(output)
-        socketio.emit('output_received', {'output': output, 'agent_id': agent_id})
-        return jsonify({'message': 'Output received successfully'}), 200
+        data_to_send = {'agent_id': agent_id, 'output': output}
+        response = requests.post('http://127.0.0.1:5002/api/receive-results', json=data_to_send)
+        if response.status_code == 200:
+            return jsonify({'message': 'Output sent successfully to main backend'}), 200
+        else:
+            return jsonify({'error': 'Failed to send data to main backend'}), 500
+        #print(output)
+        #socketio.emit('output_received', {'output': output, 'agent_id': agent_id})
+        #return jsonify({'message': 'Output received successfully'}), 200
 
 @app.route('/agents', methods=['GET'])
 def get_agents():
