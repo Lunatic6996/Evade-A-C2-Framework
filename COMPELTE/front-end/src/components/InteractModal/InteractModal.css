@@ -15,15 +15,16 @@
 .interact-modal-content {
   background-color: #fefefe;
   margin: auto;
-  padding: 40px; /* Increased padding for overall internal spacing */
+  padding: 40px;
   border: 1px solid #888;
-  width: 60%;
+  width: 80%; /* Adjusted for a wider modal */
   border-radius: 5px;
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   height: 80%;
+  text-align: left; /* Ensures text inside the modal content aligns to the left */
 }
 
 .interact-close-button {
@@ -43,46 +44,61 @@
 }
 
 .files-upload-section {
-  align-self: flex-end;
-  text-align: right;
-  margin-left: 20px;
-  margin-right: 20px;
-}
-
-.files-upload-section {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end; /* Keeps items aligned to the right */
-  margin-left: 0px;
-  margin-right: 30px;
-  gap: 10px; /* Adjust this value as needed to increase the gap between items */
+  align-self: flex-start; /* Aligns this section to the start (left) */
+  text-align: left; /* Text aligns to the left */
+  margin: 20px; /* Uniform margin */
 }
 
 .files-list {
   list-style-type: none;
   padding-left: 0;
   margin-top: 10px;
-  max-height: 100px; /* Set a maximum height for the list */
+  max-height: 80px; /* Increased height for better viewability */
   overflow-y: auto; /* Enable vertical scrolling */
 }
 
 .command-input-section {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: auto;
+  align-items: center; /* Ensures vertical alignment is centered for all items */
+  justify-content: space-between; /* Distributes space evenly around items */
+  margin: 5px; /* Provides some outer margin for the section */
+  padding: 5px; /* Adds inner padding for better spacing within the section */
+  background-color: #fff; /* Optional: sets a background color for the section */
+  border-radius: 5px; /* Optional: adds rounded corners to the section */
 }
 
 .interact-command-input {
-  width: 50%;
-  padding: 10px;
-  border: 1px solid #ccc;
+  flex-grow: 1; /* Allows the input field to take up as much space as possible */
+  margin-right: 10px; /* Adds some space between the input field and the button */
+  padding: 10px 15px; /* Ample padding for text field comfort */
+  border: 1px solid #ccc; /* Subtle border for the input */
+  border-radius: 5px; /* Rounded corners for the input field */
+  font-size: 16px; /* Sets a readable font size */
+}
+
+.interact-submit-button {
+  padding: 10px 20px; /* Padding to make the button easy to click */
+  font-size: 16px; /* Matching font size with the input field */
+  border: none; /* No border for a cleaner look */
+  background-color: #007bff; /* Primary button color */
+  color: white; /* Text color for the button */
+  border-radius: 5px; /* Rounded corners for the button */
+  cursor: pointer; /* Cursor indicates the button is clickable */
+  white-space: nowrap; /* Prevents the text in the button from wrapping */
+}
+
+.interact-upload-button {
+  /* Style for the upload button, if needed similar to the send button */
+  padding: 10px 20px;
+  background-color: #28a745; /* A distinct color for different actions */
+  color: white;
   border-radius: 5px;
+  cursor: pointer;
+  border: none;
 }
 
 .interact-submit-button, .interact-upload-button {
   padding: 10px 20px;
-  margin-left: 5px;
   font-size: 16px;
   border-radius: 5px;
   cursor: pointer;
@@ -100,10 +116,27 @@
 }
 
 .response-section {
+  text-align: left; /* Ensure text within the response section aligns to the left */
   overflow-y: auto;
-  margin-top: 20px;
   height: 40%;
-  margin-left: 20px; /* Added margin from the left */
-  margin-right: 20px; /* Added margin from the right */
+  padding: 10px;
+  background-color: #f4f4f4; /* Light grey background */
+  border: 1px solid #ccc; /* Adds a subtle border */
+  border-radius: 5px; /* Rounds the corners */
+}
+.interact-command-output {
+  text-align: left; /* Explicitly align text to the left */
+  white-space: pre-wrap; /* Preserves white space and wraps text */
+  overflow-x: auto; /* Allows horizontal scrolling if needed */
+  font-family: monospace; /* Ensures consistent font appearance */
+  margin: 0; /* Removes margin to fit text neatly within the section */
 }
 
+.session-info {
+  position: absolute;
+  top: 100px;
+  right: 280px;
+  font-size: 40px;
+  color: #666;  /* A soft, readable color */
+  font-weight: bold;
+}

@@ -3,6 +3,7 @@ from flask_cors import CORS
 from string import Template
 import re
 import subprocess
+import base64
 import uuid
 import os
 import logging
@@ -97,22 +98,29 @@ def execute_command():
     data = request.get_json()
     agent_id = data.get('agentId')
     command = data.get('command')
-    #If the command received is shutdown 
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect(('127.0.0.1', 62347))
+            message = json.dumps({'agent_id': agent_id, 'command': command})
+            s.sendall(message.encode('utf-8'))
 
-    # Connect to your TCP server
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect(('127.0.0.1', 62347))
-        # Send agent_id and command in a structured format
-        message = json.dumps({'agent_id': agent_id, 'command': command})
-        s.sendall(message.encode('utf-8'))
+            response = s.recv(4096).decode('utf-8')
+            
+            # Decode the JSON and then Base64 decode the response
+            response_data = json.loads(response)
+            decoded_response = base64.b64decode(response_data.get('response').encode('utf-8')).decode('utf-8')
+            response_text = f"Command: {command} \nResponse: {decoded_response}"
+            print("-------------------------------------------")
+            print(response_text)
+            print("-------------------------------------------")
 
-        # Wait for acknowledgment or response from the TCP server
-        response = s.recv(4092).decode('utf-8')
-        print("------------------------------------")
-        print(f'Received: {response}')
-        print("------------------------------------")
-
-    return jsonify({'status': 'Command sent to TCP server', 'response': response}), 200
+            return jsonify({'response': response_text}), 200
+    except socket.error as e:
+        print(f"Socket error: {e}")
+        return jsonify({'error': 'Failed to communicate with TCP server'}), 500
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return jsonify({'error': 'An error occurred'}), 500
 
 @app.route('/api/execute-command/HTTP', methods=['POST'], endpoint='execute_command_http')
 def execute_command_http():

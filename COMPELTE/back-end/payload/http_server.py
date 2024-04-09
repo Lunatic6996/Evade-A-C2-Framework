@@ -106,6 +106,7 @@ def get_command():
 @app.route('/send_output', methods=['POST'])
 def send_output():
     agent_id = request.form.get('agent_id')
+    command = request.form.get('command')
     if not agent_id:
         return jsonify({'error': 'Missing agent ID'}), 400
 
@@ -127,7 +128,8 @@ def send_output():
         output = request.form.get('output')
         if not output:
             return jsonify({'error': 'Missing output data'}), 400
-        data_to_send = {'agent_id': agent_id, 'output': output}
+        #data_to_send = {'agent_id': agent_id, 'output': output}
+        data_to_send = {'agent_id': agent_id, 'output': output, 'command': command}  # Include command in the data sent
         response = requests.post('http://127.0.0.1:5002/api/receive-results', json=data_to_send)
         if response.status_code == 200:
             return jsonify({'message': 'Output sent successfully to main backend'}), 200

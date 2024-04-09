@@ -5,26 +5,23 @@ import './InteractModal.css';
 // Setup the WebSocket connection
 const socket = io('http://127.0.0.1:5002');
 
-function InteractModal({ agentId, protocol, onClose }) {
+function InteractModal({ agentId, agentName, protocol, onClose }) {
     const [command, setCommand] = useState('');
     const [output, setOutput] = useState('');
     const [selectedFile, setSelectedFile] = useState(null);
     const [filesList, setFilesList] = useState([]);
 
     useEffect(() => {
-        // Fetch the list of available files for upload
-        fetchFilesList();
+        fetchFilesList(); // Fetch the list of available files for upload
 
-        // Listen for outputs specifically for HTTP and HTTPS agents
         socket.on('output_received', (data) => {
             if (data.http_output && (protocol === 'HTTP' || protocol === 'HTTPS') && data.http_output.agent_id === agentId) {
-                setOutput(data.http_output.output || 'No output returned.');
+                const formattedOutput = `Command: ${data.http_output.command}\nResponse: ${data.http_output.output}`;
+                setOutput(formattedOutput || 'No output returned.');
             }
         });
 
-        return () => {
-            socket.off('output_received');
-        };
+        return () => socket.off('output_received');
     }, [agentId, protocol]);
 
     const fetchFilesList = async () => {
@@ -80,11 +77,9 @@ function InteractModal({ agentId, protocol, onClose }) {
             const data = await response.json();
 
             if (response.ok) {
-                // Use immediate response for TCP protocols
                 if (protocol === 'TCP') {
                     setOutput(data.response || 'Command executed with no output.');
                 } else {
-                    // For HTTP/HTTPS, rely on WebSocket updates
                     console.log('Command sent, awaiting response...');
                 }
             } else {
@@ -102,18 +97,17 @@ function InteractModal({ agentId, protocol, onClose }) {
         <div className="interact-modal">
             <div className="interact-modal-content">
                 <span className="interact-close-button" onClick={onClose}>&times;</span>
+                <div className="session-info">{`${protocol.toUpperCase()} Agent ${agentName}`}</div>
                 <div className="files-upload-section">
                     <input type="file" onChange={handleFileSelect} className="file-input" />
                     <button onClick={handleFileUpload} className="interact-upload-button">Upload</button>
                     <h2>Files Available for Upload:</h2>
                     <ul className="files-list">
-                        {filesList.map(file => (
-                            <li key={file}>{file}</li>
-                        ))}
+                        {filesList.map(file => <li key={file}>{file}</li>)}
                     </ul>
                 </div>
                 <div className="response-section">
-                    <div className="interact-command-output">{output}</div>
+                    <pre className="interact-command-output">{output}</pre>
                 </div>
                 <div className="command-input-section">
                     <input

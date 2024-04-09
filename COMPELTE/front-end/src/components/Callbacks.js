@@ -6,18 +6,21 @@ function Callbacks() {
   const { agents } = useAgentData();
   const [showModal, setShowModal] = useState(false);
   const [currentAgentId, setCurrentAgentId] = useState(null);
-  const [currentProtocol, setCurrentProtocol] = useState(null);  // Added state for protocol
+  const [currentAgentName, setCurrentAgentName] = useState(''); // State to store the current agent's name
+  const [currentProtocol, setCurrentProtocol] = useState(null);
 
-  const handleInteractClick = (agentId, protocol) => {
+  const handleInteractClick = (agentId, agentName, protocol) => {
     setCurrentAgentId(agentId);
-    setCurrentProtocol(protocol);  // Store the protocol when an agent is clicked
+    setCurrentAgentName(agentName); // Store the agent name when an agent is clicked
+    setCurrentProtocol(protocol);
     setShowModal(true);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setCurrentAgentId(null);
-    setCurrentProtocol(null);  // Reset protocol on modal close
+    setCurrentAgentName(''); // Reset agent name on modal close
+    setCurrentProtocol(null);
   };
 
   return (
@@ -30,11 +33,16 @@ function Callbacks() {
             <span>Protocol: {agent.protocol}</span>
             <span>Last Seen: {agent.last_seen}</span>
           </div>
-          <button onClick={() => handleInteractClick(agent.agent_id, agent.protocol)} style={{ marginLeft: '20px' }}>Interact</button>
+          <button onClick={() => handleInteractClick(agent.agent_id, agent.agent_name, agent.protocol)} style={{ marginLeft: '20px' }}>Interact</button>
         </div>
       ))}
       {showModal && (
-        <InteractModal agentId={currentAgentId} protocol={currentProtocol} onClose={handleCloseModal} />
+        <InteractModal 
+          agentId={currentAgentId} 
+          agentName={currentAgentName} 
+          protocol={currentProtocol} 
+          onClose={handleCloseModal} 
+        />
       )}
     </div>
   );
