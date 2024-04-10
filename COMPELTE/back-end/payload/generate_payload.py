@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from string import Template
 import re
+import pytz
 import subprocess
 import base64
 import uuid
@@ -22,32 +23,38 @@ from database import init_db,db,Agent,Session,User,Command
 import requests
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="http://localhost:3000")
+#socketio = SocketIO(app, cors_allowed_origins="http://localhost:3000")
 
 load_dotenv()
 
+# Initialize SocketIO with CORS allowed origins
+socketio = SocketIO(app, cors_allowed_origins=os.environ.get('CORS_ORIGINS'))
+
+#UPLOADS_FOLDER This is folder for uploading files
 # Define the path to the uploads folder
 UPLOADS_FOLDER = os.path.join(app.root_path, 'uploads')
 app.config['UPLOADS_FOLDER'] = UPLOADS_FOLDER
-
 # Ensure the uploads folder exists
 os.makedirs(UPLOADS_FOLDER, exist_ok=True)
 
-app.config['JWT_SECRET_KEY'] = 'your_jwt_secret_key'
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
 jwt = JWTManager(app)
 
-CORS(app, supports_credentials=True, origins='http://localhost:3000')
+CORS(app, supports_credentials=True, origins=os.environ.get('CORS_ORIGINS'))
 
-app.config['UPLOAD_FOLDER'] = r"E:\\Github\\Repos\\Evade-A-C2-Framework\\COMPELTE\\generated_payloads"
+#UPLOAD_FOLDER is for generated payloads
+app.config['UPLOAD_FOLDER'] = r"E:\\Github\\Repos\\Evade-A-C2-Framework\\COMPELTE\\back-end\\generated_payloads"
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@127.0.0.1:5432/evade-c2'
+app.config['SQLALCHEMY_DATABASE_URI']=os.environ.get('SQLALCHEMY_DATABASE_URI')
+
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@127.0.0.1:5432/evade-c2'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 init_db(app)
 
 # Static users dictionary
-users = {'rochak': generate_password_hash('rochak')}
+#users = {'rochak': generate_password_hash('rochak')}
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -578,19 +585,21 @@ def notify_frontend(agent_id, agent_name=None, addr=None):
         session = Session()
         agent = session.query(Agent).filter_by(agent_id=agent_id).first()
         if agent:
-            # Constructing a detailed message for logging
-            #agent_info = f"Agent Data: ID={agent.agent_id}, Name={agent_name or 'Unknown'}, Type={agent.type}, Protocol={agent.protocol}, Last Seen={agent.last_seen}, Address={addr or 'Unknown'}"
-            #print(agent_info)
+            nepal_zone = pytz.timezone('Asia/Kathmandu')
+            last_seen_npt = agent.last_seen.replace(tzinfo=pytz.utc).astimezone(nepal_zone)
+            formatted_last_seen = last_seen_npt.strftime('%Y-%m-%d %H:%M:%S')
+
             print("-------------------------------------------------------")
             print("EMIT EMIT")
             print("-------------------------------------------------------")
+
             # Emitting an update to the frontend with comprehensive agent details
             socketio.emit('agent_update', {
                 'agent_id': agent.agent_id,
                 'agent_name': agent_name or 'Unknown',
-                'protocol': agent.protocol.upper(),
-                'last_seen': agent.last_seen.strftime('%Y-%m-%d %H:%M:%S'),
-                'address': addr or 'Unknown'  # Include address in the emitted data
+                'protocol': agent.protocol.upper() if agent.protocol else 'Unknown',
+                'last_seen': formatted_last_seen,
+                'address': addr or 'Unknown'
             })
         session.close()
 

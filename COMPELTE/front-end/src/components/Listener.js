@@ -25,7 +25,7 @@ function Listener() {
 
   const handleStopListener = async (protocol, localIP, port) => {
     try {
-      const response = await fetch('http://127.0.0.1:5002/api/remove-listener', {
+      const response = await fetch(process.env.REACT_APP_REMOVE_LISTENER, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,7 +59,7 @@ function Listener() {
     const newListenerConfig = { protocol, localIP, port };
     // Send the configuration to your Flask backend
     try {
-      const response = await fetch('http://127.0.0.1:5002/api/configure-listener', {
+      const response = await fetch(process.env.REACT_APP_CONFIGURE_LISTENER, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

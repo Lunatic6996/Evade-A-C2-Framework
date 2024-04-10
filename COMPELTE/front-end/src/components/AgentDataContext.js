@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Initialize socket connection
-const socket = io('http://127.0.0.1:5002');
+const socket = io(process.env.REACT_APP_SOCKET);
 
 const AgentDataContext = createContext();
 

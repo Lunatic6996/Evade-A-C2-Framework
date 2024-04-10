@@ -15,8 +15,6 @@ function Payloads() {
     sleepTimer: '',
   });
 
-  //const notify = () => toast("Wow so easy!");
-
   const userAgents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
@@ -31,39 +29,59 @@ function Payloads() {
     }));
   };
 
-  // Handle form submission
-const handleSubmit = (e) => {
-  e.preventDefault();
-
-  // Define required fields based on protocol
-  const requiredFields = ['name', 'lhost', 'lport', 'type', 'protocol'];
-  if (payload.protocol === 'http' || payload.protocol === 'https') {
-    requiredFields.push('userAgent', 'sleepTimer');
-  }
-
-  // Check if any required field is empty
-  for (const field of requiredFields) {
-    if (!payload[field]) {
-      toast.error('Please fill out all required fields.');
-      return;
-    }
-  }
-
-  const headers = {
-    'Content-Type': 'application/json'
+  const isValidIP = (ip) => {
+    return /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ip);
   };
 
-  axios.post('http://127.0.0.1:5002/api/generate-payload', payload, { headers })
-    .then(response => {
-      console.log(response.data);
-      window.location.href = response.data.downloadUrl;
-      toast.success('Payload generated successfully!');
-    })
-    .catch(error => {
-      console.error('There was an error generating the payload:', error);
-      toast.error('Error generating payload. Please try again.');
-    });
-};
+  const isValidPort = (port) => {
+    const num = Number(port);
+    return num >= 1 && num <= 65535 && Number.isInteger(num);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    // Define required fields based on protocol
+    const requiredFields = ['name', 'lhost', 'lport', 'type', 'protocol'];
+    if (payload.protocol === 'http' || payload.protocol === 'https') {
+      requiredFields.push('userAgent', 'sleepTimer');
+    }
+
+    // Check if any required field is empty or invalid
+    for (const field of requiredFields) {
+      if (!payload[field]) {
+        toast.error('Please fill out all required fields.');
+        return;
+      }
+    }
+
+    if (!isValidIP(payload.lhost)) {
+      toast.error('Invalid IP address format.');
+      return;
+    }
+
+    if (!isValidPort(payload.lport)) {
+      toast.error('Invalid port number. Port must be between 1 and 65535.');
+      return;
+    }
+
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+
+    const generate_payload_url=process.env.REACT_APP_API_GENERATE_PAYLOAD
+
+    axios.post(generate_payload_url, payload, { headers })
+      .then(response => {
+        console.log(response.data);
+        window.location.href = response.data.downloadUrl;
+        toast.success('Payload generated successfully!');
+      })
+      .catch(error => {
+        console.error('There was an error generating the payload:', error);
+        toast.error('Error generating payload. Please try again.');
+      });
+  };
 
   return (
     <div>
@@ -72,42 +90,42 @@ const handleSubmit = (e) => {
 
       <form onSubmit={handleSubmit}>
         <div>
-            <label>
-              Name:
-              <input type="text" name="name" value={payload.name} onChange={handleChange} />
-            </label>
-          </div>
-          <div>
-            <label>
-              Lhost:
-              <input type="text" name="lhost" value={payload.lhost} onChange={handleChange} />
-            </label>
-          </div>
-          <div>
-            <label>
-              Lport:
-              <input type="text" name="lport" value={payload.lport} onChange={handleChange} />
-            </label>
-          </div>
-          <div>
-            <label>
-              Type (.py or .exe):
-              <select name="type" value={payload.type} onChange={handleChange}>
-                <option value=".py">.py</option>
-                <option value=".exe">.exe</option>
-              </select>
-            </label>
-          </div>
-          <div>
-            <label>
-              Protocol (tcp, http, https):
-              <select name="protocol" value={payload.protocol} onChange={handleChange}>
-                <option value="tcp">TCP</option>
-                <option value="http">HTTP</option>
-                <option value="https">HTTPS</option>
-              </select>
-            </label>
-          </div>
+          <label>
+            Name:
+            <input type="text" name="name" value={payload.name} onChange={handleChange} />
+          </label>
+        </div>
+        <div>
+          <label>
+            Lhost:
+            <input type="text" name="lhost" value={payload.lhost} onChange={handleChange} />
+          </label>
+        </div>
+        <div>
+          <label>
+            Lport:
+            <input type="text" name="lport" value={payload.lport} onChange={handleChange} />
+          </label>
+        </div>
+        <div>
+          <label>
+            Type (.py or .exe):
+            <select name="type" value={payload.type} onChange={handleChange}>
+              <option value=".py">.py</option>
+              <option value=".exe">.exe</option>
+            </select>
+          </label>
+        </div>
+        <div>
+          <label>
+            Protocol (tcp, http, https):
+            <select name="protocol" value={payload.protocol} onChange={handleChange}>
+              <option value="tcp">TCP</option>
+              <option value="http">HTTP</option>
+              <option value="https">HTTPS</option>
+            </select>
+          </label>
+        </div>
         <div>
           <label>
             Enable Persistence:

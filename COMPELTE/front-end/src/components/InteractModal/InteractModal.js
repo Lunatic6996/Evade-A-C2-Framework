@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import './InteractModal.css';
 
+const socket_url=process.env.REACT_APP_SOCKET
 // Setup the WebSocket connection
-const socket = io('http://127.0.0.1:5002');
+const socket = io(socket_url);
 
 function InteractModal({ agentId, agentName, protocol, onClose }) {
     const [command, setCommand] = useState('');
@@ -26,7 +27,7 @@ function InteractModal({ agentId, agentName, protocol, onClose }) {
 
     const fetchFilesList = async () => {
         try {
-            const response = await fetch(`http://127.0.0.1:5002/list_files/${agentId}`);
+            const response = await fetch(`${process.env.REACT_APP_FILES_LIST_URL}/${agentId}`);
             const data = await response.json();
             if (response.ok) {
                 setFilesList(data.files || []);
@@ -48,7 +49,7 @@ function InteractModal({ agentId, agentName, protocol, onClose }) {
         formData.append('agent_id', agentId);
 
         try {
-            const response = await fetch('http://127.0.0.1:5002/upload', {
+            const response = await fetch(process.env.REACT_APP_UPLOAD_URL, {
                 method: 'POST',
                 body: formData,
             });
@@ -69,7 +70,7 @@ function InteractModal({ agentId, agentName, protocol, onClose }) {
         setOutput('Processing...');
 
         try {
-            const response = await fetch(`http://127.0.0.1:5002/api/execute-command/${protocol}`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/execute-command/${protocol}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ agentId, command }),
