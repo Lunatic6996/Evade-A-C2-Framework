@@ -15,16 +15,16 @@
 .interact-modal-content {
   background-color: #fefefe;
   margin: auto;
-  padding: 40px;
+  padding: 34px; /* Reduced from 40px by about 15% */
   border: 1px solid #888;
-  width: 80%; /* Adjusted for a wider modal */
+  width: 68%; /* Reduced from 80% to slightly less for more emphasis */
+  height: 68%; /* Proportional reduction in height */
   border-radius: 5px;
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 80%;
-  text-align: left; /* Ensures text inside the modal content aligns to the left */
+  text-align: left;
 }
 
 .interact-close-button {
@@ -135,8 +135,8 @@
 .session-info {
   position: absolute;
   top: 100px;
-  right: 280px;
-  font-size: 40px;
+  right: 200px;
+  font-size: 30px;
   color: #666;  /* A soft, readable color */
   font-weight: bold;
 }

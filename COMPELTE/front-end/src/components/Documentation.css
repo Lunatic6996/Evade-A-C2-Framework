@@ -1,13 +1,72 @@
-.documentation {
-    font-family: Arial, sans-serif;
-    color: #333; /* Default text color, ensure it contrasts with your background */
-    background-color: #f0f0f0; /* Light background for the documentation area */
-    max-width: 800px;
-    margin: 0 auto;
+.documentation-layout {
+    display: flex;
+    margin: 20px auto;
+    max-width: 1200px; /* Adjust based on your content width */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05); /* Soft shadow for a subtle depth effect */
+    background-color: #ffffff; /* Bright but not glaring white background for the main content */
+  }
+  
+  .toc-sidebar {
+    width: 250px; /* Fixed width for the sidebar */
+    flex-shrink: 0; /* Prevents the sidebar from shrinking */
     padding: 20px;
-}
-
-.documentation li {
-    color: #333; /* Ensuring list items are visible against a light background */
-    /* Other styles */
-}
+    margin-top: 20px; /* Adjust based on the height of your navigation bar */
+    background-color: #f4f4f4; /* Soft gray for the sidebar, less harsh than pure white */
+    border-right: 1px solid #e0e0e0; /* Light gray border for a gentle separation */
+    position: sticky; /* Sidebar scrolls with the content */
+    top: 0; /* Top of the sidebar aligned with the viewport */
+    height: calc(100vh - 60px); /* Full height minus navigation bar */
+    overflow-y: auto; /* Scrollable sidebar if content exceeds the viewport height */
+  }
+  
+  .toc-sidebar h3 {
+    margin-top: 0;
+    font-size: 18px;
+    color: #333; /* Clear visibility against lighter background */
+  }
+  
+  .toc-sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .toc-sidebar li a {
+    display: block;
+    color: #007bff; /* Attractive blue, good contrast on gray */
+    text-decoration: none;
+    padding: 8px 0;
+  }
+  
+  .toc-sidebar li a:hover {
+    background-color: #e9ecef; /* Very light gray for hover, providing minimal but clear feedback */
+  }
+  
+  .content {
+    flex-grow: 1;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  
+  .content section {
+    margin-top: 20px; 
+    padding: 50px 20px 20px; 
+    position: relative; 
+    transition: background-color 0.3s ease;
+  }
+  
+  .content section::before {
+    content: "";
+    display: block;
+    height: 80px;
+    margin-top: -80px;
+    visibility: hidden;
+  }
+  
+  .content section.active {
+    background-color: #e8f0fe;
+    border-left: 5px solid #007bff; 
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease; 
+  }
+  
