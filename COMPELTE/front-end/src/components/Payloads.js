@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import './PayloadStyles.css';
 
 function Payloads() {
   const [payload, setPayload] = useState({
@@ -84,11 +85,11 @@ function Payloads() {
   };
 
   return (
-    <div>
-      <h2>Welcome to Payloads!</h2>
-      <p>Guide to create your first Payload</p>
+    <div className="payload-container">
+      <h2 className="payload-header">Welcome to Payloads!</h2>
+      <p className="payload-instructions">Guide to create your first Payload</p>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="payload-form">
         <div>
           <label>
             Name:
@@ -118,7 +119,7 @@ function Payloads() {
         </div>
         <div>
           <label>
-            Protocol (tcp, http, https):
+            Protocol (TCP, HTTP, HTTPS):
             <select name="protocol" value={payload.protocol} onChange={handleChange}>
               <option value="tcp">TCP</option>
               <option value="http">HTTP</option>
