@@ -12,10 +12,11 @@ import Login from './components/Login';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // Now includes potential section identifiers in currentPage state
   const [currentPage, setCurrentPage] = useState('Home');
 
   useEffect(() => {
-    // Immediately check if a JWT token exists in localStorage to assume logged in status
+    // Check if a JWT token exists in localStorage to determine logged in status
     const token = localStorage.getItem('token');
     setIsLoggedIn(!!token); // Sets to true if token exists, otherwise false
   }, []);
@@ -33,17 +34,23 @@ function App() {
   };
 
   const renderPage = () => {
-    if (isLoggedIn === null) {
-      return <div>Loading...</div>; // This can be removed or adjusted as per the new logic
-    } else if (!isLoggedIn) {
+    // Split the currentPage state into page and optional section
+    const [page, section] = currentPage.split('#');
+    if (!isLoggedIn) {
       return <Login onLoginSuccess={handleLoginSuccess} />;
     } else {
-      switch (currentPage) {
-        case 'Listener': return <Listener />;
-        case 'Payloads': return <Payloads />;
-        case 'Callbacks': return <Callbacks />;
-        case 'Documentation': return <Documentation />;
-        default: return <Home />;
+      switch (page) {
+        case 'Listener':
+          return <Listener />;
+        case 'Payloads':
+          return <Payloads />;
+        case 'Callbacks':
+          return <Callbacks />;
+        case 'Documentation':
+          return <Documentation activeSection={section} />;
+        case 'Home':
+        default:
+          return <Home setCurrentPage={setCurrentPage} />;
       }
     }
   };

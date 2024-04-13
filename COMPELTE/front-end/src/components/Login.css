@@ -1,10 +1,18 @@
+/* Reset padding-top specifically for the login page */
+.body-login {
+  padding-top: 0px; /* Removes the padding when on the login page */
+}
+
+/* If adding directly to the login container */
 .login-container {
+  padding-top: 0px; /* Override if using specific class for the body isn't feasible */
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  background: linear-gradient(to bottom right, #f0f2f5, #e3e7eb); /* subtle gradient background */
+  height: calc(100vh - 60px); /* Adjusting height to subtract the navbar if it's present */
+  background: linear-gradient(to bottom right, #f0f2f5, #e3e7eb);
 }
+
 
 .login-form {
   width: 100%;

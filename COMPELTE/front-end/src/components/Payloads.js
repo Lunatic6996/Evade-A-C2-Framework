@@ -24,6 +24,10 @@ function Payloads() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    if (name === 'sleepTimer' && (Number(value) < 0)) {
+      toast.error('Sleep timer cannot be negative.');
+      return;
+    }
     setPayload(prevState => ({
       ...prevState,
       [name]: type === 'checkbox' ? checked : value
@@ -42,15 +46,13 @@ function Payloads() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Define required fields based on protocol
     const requiredFields = ['name', 'lhost', 'lport', 'type', 'protocol'];
     if (payload.protocol === 'http' || payload.protocol === 'https') {
-      requiredFields.push('userAgent', 'sleepTimer');
+      requiredFields.push('sleepTimer');  // Always check sleepTimer if HTTP or HTTPS is selected
     }
 
-    // Check if any required field is empty or invalid
     for (const field of requiredFields) {
-      if (!payload[field]) {
+      if (field !== 'userAgent' && !payload[field]) {
         toast.error('Please fill out all required fields.');
         return;
       }
@@ -66,13 +68,7 @@ function Payloads() {
       return;
     }
 
-    const headers = {
-      'Content-Type': 'application/json'
-    };
-
-    const generate_payload_url=process.env.REACT_APP_API_GENERATE_PAYLOAD
-
-    axios.post(generate_payload_url, payload, { headers })
+    axios.post(process.env.REACT_APP_API_GENERATE_PAYLOAD, payload, { headers: { 'Content-Type': 'application/json' } })
       .then(response => {
         console.log(response.data);
         window.location.href = response.data.downloadUrl;
@@ -83,7 +79,6 @@ function Payloads() {
         toast.error('Error generating payload. Please try again.');
       });
   };
-
   return (
     <div className="payload-container">
       <h2 className="payload-header">Welcome to Payloads!</h2>
@@ -140,7 +135,7 @@ function Payloads() {
               <label>
                 User Agent:
                 <select name="userAgent" value={payload.userAgent} onChange={handleChange}>
-                  <option value="">Select User Agent</option>
+                  <option value="">None</option>
                   {userAgents.map((agent, index) => (
                     <option key={index} value={agent}>{agent}</option>
                   ))}
