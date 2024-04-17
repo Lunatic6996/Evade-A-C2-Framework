@@ -122,18 +122,21 @@ function Listener() {
                             <option value="HTTP">HTTP</option>
                             <option value="HTTPS">HTTPS</option>
                         </select>
+                        <span className="help-icon" title="Select the protocol type for the listener.TCP is for reliable connection,HTTP is for mimicking a real web traffic and HTTPS is encrypted real web traffic ">?</span>
                     </label>
                 </div>
                 <div className="label-group">
                     <label>
                         Local IP:
                         <input type="text" name="localIP" value={localIP} onChange={handleLocalIPChange} />
+                        <span className="help-icon" title="Enter the local IP address for the listener. If you dont know the your ip check in the command prompt typing 'ipconfig' ">?</span>
                     </label>
                 </div>
                 <div className="label-group">
                     <label>
                         Port:
                         <input type="text" name="port" value={port} onChange={handlePortChange} />
+                        <span className="help-icon" title="Enter the port number for the listener. 80 is better for HTTP and 443 is Better for HTTPS to mimic a real web traffic. For TCP use a port higher than 1000 for reliable connection.">?</span>
                     </label>
                 </div>
                 <div>
@@ -159,5 +162,4 @@ function Listener() {
     </div>
 );
 }
-
 export default Listener;

@@ -93,3 +93,10 @@
 .config-item button:hover {
     background-color: #c82333;
 }
+
+.help-icon {
+    display: inline-block;
+    margin-left: 5px;
+    font-weight: bold;
+    cursor: help;
+}

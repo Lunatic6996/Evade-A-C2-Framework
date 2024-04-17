@@ -68,39 +68,47 @@ function Payloads() {
       return;
     }
 
-    axios.post(process.env.REACT_APP_API_GENERATE_PAYLOAD, payload, { headers: { 'Content-Type': 'application/json' } })
-      .then(response => {
-        console.log(response.data);
-        window.location.href = response.data.downloadUrl;
-        toast.success('Payload generated successfully!');
-      })
-      .catch(error => {
-        console.error('There was an error generating the payload:', error);
-        toast.error('Error generating payload. Please try again.');
-      });
+    const postData = axios.post(process.env.REACT_APP_API_GENERATE_PAYLOAD, payload, { headers: { 'Content-Type': 'application/json' } });
+
+    toast.promise(
+      postData,
+      {
+        pending: 'Generating payload...',
+        success: 'Payload generated successfully!',
+        error: 'Error generating payload. Please try again.'
+      }
+    ).then(response => {
+      console.log(response.data);
+      window.location.href = response.data.downloadUrl; // This will execute after the success toast message
+    }).catch(error => {
+      console.error('There was an error generating the payload:', error);
+    });
   };
   return (
     <div className="payload-container">
       <h2 className="payload-header">Welcome to Payloads!</h2>
       <p className="payload-instructions">Guide to create your first Payload</p>
-
+  
       <form onSubmit={handleSubmit} className="payload-form">
         <div>
           <label>
             Name:
             <input type="text" name="name" value={payload.name} onChange={handleChange} />
+            <span className="help-icon" title="Enter a unique name for your payload">?</span>
           </label>
         </div>
         <div>
           <label>
             Lhost:
             <input type="text" name="lhost" value={payload.lhost} onChange={handleChange} />
+            <span className="help-icon" title="Enter the local host IP for the payload according to the IP set for the listener.">?</span>
           </label>
         </div>
         <div>
           <label>
             Lport:
             <input type="text" name="lport" value={payload.lport} onChange={handleChange} />
+            <span className="help-icon" title="Enter the PORT to connect back to listener according to the PORT set for the listener.">?</span>
           </label>
         </div>
         <div>
@@ -110,6 +118,7 @@ function Payloads() {
               <option value=".py">.py</option>
               <option value=".exe">.exe</option>
             </select>
+            <span className="help-icon" title="Select the file type of the payload. py file can be used to modify or add more things where as .exe create a standalone executables.">?</span>
           </label>
         </div>
         <div>
@@ -120,15 +129,17 @@ function Payloads() {
               <option value="http">HTTP</option>
               <option value="https">HTTPS</option>
             </select>
+            <span className="help-icon" title="Select the communication protocol for the payload. If you want a callback set the protocol according to the configured Listener.">?</span>
           </label>
         </div>
         <div>
           <label>
             Enable Persistence:
             <input type="checkbox" name="persistence" checked={payload.persistence} onChange={handleChange} />
+            <span className="help-icon" title="Check to make the payload persist across reboots">?</span>
           </label>
         </div>
-
+  
         {payload.protocol === 'http' || payload.protocol === 'https' ? (
           <>
             <div>
@@ -140,17 +151,19 @@ function Payloads() {
                     <option key={index} value={agent}>{agent}</option>
                   ))}
                 </select>
+                <span className="help-icon" title="Select the user agent to mimic web traffic">?</span>
               </label>
             </div>
             <div>
               <label>
                 Sleep Timer (seconds):
                 <input type="number" name="sleepTimer" value={payload.sleepTimer} onChange={handleChange} />
+                <span className="help-icon" title="Set the sleep timer for the payload in seconds. This is also know as beaconing time. Higher the sleep Timer better for evading detections. ">?</span>
               </label>
             </div>
           </>
         ) : null}
-
+  
         <div>
           <button type="submit">Create</button>
         </div>
@@ -159,5 +172,5 @@ function Payloads() {
     </div>
   );
 }
-
-export default Payloads;
+  export default Payloads;
+  
