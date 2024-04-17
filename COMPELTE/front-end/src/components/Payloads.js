@@ -13,7 +13,8 @@ function Payloads() {
     protocol: 'tcp', // Setting default value for protocol
     persistence: false,
     userAgent: '',
-    sleepTimer: '',
+    sleepTimer: '1',
+    jitterPercentage: '0'  
   });
 
   const userAgents = [
@@ -24,8 +25,8 @@ function Payloads() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    if (name === 'sleepTimer' && (Number(value) < 0)) {
-      toast.error('Sleep timer cannot be negative.');
+    if ((name === 'sleepTimer' || name === 'jitterPercentage') && Number(value) < 0) {
+      toast.error('Sleep timer and jitter percentage cannot be negative.');
       return;
     }
     setPayload(prevState => ({
@@ -139,6 +140,22 @@ function Payloads() {
             <span className="help-icon" title="Check to make the payload persist across reboots">?</span>
           </label>
         </div>
+
+        <div>
+              <label>
+                Sleep Timer (seconds):
+                <input type="number" name="sleepTimer" value={payload.sleepTimer} onChange={handleChange} />
+                <span className="help-icon" title="Set the sleep timer for the payload in seconds. This is also know as beaconing time. Higher the sleep Timer better for evading detections. ">?</span>
+              </label>
+        </div>
+
+        <div>
+              <label>
+                Jitter Percentage:
+                <input type="number" name="jitterPercentage" value={payload.jitterPercentage} onChange={handleChange} />
+                <span className="help-icon" title="Set the jitter percentage to vary the sleep timer. This adds randomness to the base interval, simulating more dynamic behavior.">?</span>
+              </label>
+            </div>
   
         {payload.protocol === 'http' || payload.protocol === 'https' ? (
           <>
@@ -154,13 +171,8 @@ function Payloads() {
                 <span className="help-icon" title="Select the user agent to mimic web traffic">?</span>
               </label>
             </div>
-            <div>
-              <label>
-                Sleep Timer (seconds):
-                <input type="number" name="sleepTimer" value={payload.sleepTimer} onChange={handleChange} />
-                <span className="help-icon" title="Set the sleep timer for the payload in seconds. This is also know as beaconing time. Higher the sleep Timer better for evading detections. ">?</span>
-              </label>
-            </div>
+           
+            
           </>
         ) : null}
   
