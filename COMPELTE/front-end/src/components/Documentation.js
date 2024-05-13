@@ -178,6 +178,11 @@ function Documentation({ activeSection: initialActiveSection }) {
               <li><strong>Transparency and Accountability:</strong> Encouraging transparency in the use of C2 capabilities and promoting accountability by documenting and justifying operational decisions.</li>
               <li><strong>Preventing Misuse:</strong> Strategies to prevent the misuse of the framework in unauthorized contexts, including robust authentication mechanisms and user training programs.</li>
           </ul>
+          <p> It is imperative to consider the legal implications of deploying such tools beyond personal or approved environments. Under Nepal's first cyber law, the Electronic Transactions Act, 2063 (2008)/ETA and the Banking Offences and Punishment Act 2064 (2008), there are significant penalties for unauthorized activities involving computer systems: Three-year imprisonment or a fine up to two hundred thousand rupees, or both, for unauthorized activities such as:
+            <li>	Damaging or pirating any computer system purposefully.</li>
+            <li>  Gaining unauthorized access to any computer system.</li>
+            <li>	Intentionally destroying or deleting data from a computer system.</li>
+          </p>
           
           <h3>Building Resilience in Cybersecurity</h3>
           <p>By promoting the ethical use of C2 tools and adhering to best practices, Evade-C2 contributes to the resilience of the cyber domain. Users are equipped with the knowledge and tools to enhance their cybersecurity defenses, making them better prepared to handle and mitigate potential cyber threats. This proactive approach not only protects individual systems but also fortifies the broader cybersecurity infrastructure.</p>
@@ -191,7 +196,7 @@ function Documentation({ activeSection: initialActiveSection }) {
         <ol>
             <li>Access the 'Listener' tab from the main navigation bar.</li>
             <li>Select the protocol you wish to use for the listener: TCP, HTTP, or HTTPS.</li>
-            <li>Enter the desired local IP address and port number where the listener will operate. The IP address must be one that is assigned to a network interface on your machine or set to <code>0.0.0.0</code> to listen on all available network interfaces.</li>
+            <li>Enter the desired local IP address and port number where the listener will operate. The IP address must be one that is assigned to a network interface on your machine </li>
             <li>Click "Start Listener" to activate the listener and begin receiving connections from agents.</li>
         </ol>
         <h3>Choosing the Correct IP Address for Listeners</h3>
@@ -199,7 +204,7 @@ function Documentation({ activeSection: initialActiveSection }) {
         <ul>
             <li><strong>Local IP Address:</strong> Use an IP address that is assigned to your server to ensure the listener can bind to it successfully. If the IP address does not belong to your machine, the system will likely return an error and fail to start the listener.</li>
             <li><strong>Public vs. Private IPs:</strong> Depending on your operational needs, you may choose a public IP address for receiving connections from the internet or a private IP for managing devices within the same network.</li>
-            <li><strong>Listening on 0.0.0.0:</strong> If you want your listener to accept connections on any network interface your server has, you can specify <code>0.0.0.0</code> as the IP address. This setup is particularly useful when you are uncertain of the exact interface agents will use to connect or if the server is multi-homed.</li>
+           
         </ul>
         <p>Correct IP configuration ensures that your C2 system can communicate effectively without interruptions.</p>
     </section>

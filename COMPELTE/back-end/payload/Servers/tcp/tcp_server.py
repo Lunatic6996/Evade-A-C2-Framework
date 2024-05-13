@@ -98,7 +98,7 @@ def handle_download(agent_id, filename):
     else:
         try:
             file_size = int(response)
-            output_dir = 'downloaded_files'
+            output_dir = 'Tcp_Downloaded_Files'
             os.makedirs(output_dir, exist_ok=True)
             file_path = os.path.join(output_dir, os.path.basename(filename))
 
@@ -125,7 +125,7 @@ def handle_upload(agent_id, filename):
         return
 
     # Adjust the file_path to include the agent_id subdirectory
-    uploads_dir = r'E:\Github\Repos\Evade-A-C2-Framework\COMPELTE\back-end\payload\uploads'
+    uploads_dir = r'E:\Github\Repos\Evade-A-C2-Framework\COMPELTE\uploads'
     file_path = os.path.join(uploads_dir, agent_id, filename)  # Include the agent_id in the path
 
     if os.path.exists(file_path):

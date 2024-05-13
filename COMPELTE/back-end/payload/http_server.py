@@ -10,9 +10,9 @@ app = Flask(__name__)
 socketio = SocketIO(app)
 
 # Define separate directories for uploads and downloads
-BASE_DIR = r'E:\Github\Repos\Evade-A-C2-Framework\COMPELTE\back-end\payload'
-UPLOADS_FOLDER = r'E:\Github\Repos\Evade-A-C2-Framework\COMPELTE\back-end\payload\uploads'
-DOWNLOADS_FOLDER = os.path.join(BASE_DIR, 'downloads_from_http_agents')
+BASE_DIR = r'E:\Github\Repos\Evade-A-C2-Framework\COMPELTE'
+UPLOADS_FOLDER = r'E:\Github\Repos\Evade-A-C2-Framework\COMPELTE\uploads'
+DOWNLOADS_FOLDER = os.path.join(BASE_DIR, 'downloads_from_http_https_agents')
 
 app.config['UPLOADS_FOLDER'] = UPLOADS_FOLDER
 app.config['DOWNLOADS_FOLDER'] = DOWNLOADS_FOLDER

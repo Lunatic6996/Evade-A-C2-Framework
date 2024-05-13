@@ -32,7 +32,7 @@ function Listener() {
     const portRegex = /^(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{1,3}|0)$/;
     return portRegex.test(port);
   };
-
+{/*
   const handleStopListener = async (protocol, localIP, port) => {
     try {
       const response = await fetch(process.env.REACT_APP_REMOVE_LISTENER, {
@@ -55,7 +55,7 @@ function Listener() {
       toast.error('Failed to send stop listener request to the server.');
     }
   };
-  
+*/}
                           
   // Handle form submission
   const handleSubmit = async (event) => {
@@ -152,7 +152,7 @@ function Listener() {
                         <p>Protocol: {config.protocol}</p>
                         <p>Local IP: {config.localIP}</p>
                         <p>Port: {config.port}</p>
-                        <button onClick={() => handleStopListener(config.protocol, config.localIP, config.port)} className="button">Stop Listener</button>
+                        {/* <button onClick={() => handleStopListener(config.protocol, config.localIP, config.port)} className="button">Stop Listener</button>*/}
                     </div>
                 ))
             ) : (

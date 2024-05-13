@@ -32,7 +32,7 @@ socketio = SocketIO(app, cors_allowed_origins=os.environ.get('CORS_ORIGINS'))
 
 #UPLOADS_FOLDER This is folder for uploading files
 # Define the path to the uploads folder
-UPLOADS_FOLDER = os.path.join(app.root_path, 'uploads')
+UPLOADS_FOLDER = os.path.join(r'E:\\Github\\Repos\\Evade-A-C2-Framework\\COMPELTE', 'uploads')
 app.config['UPLOADS_FOLDER'] = UPLOADS_FOLDER
 # Ensure the uploads folder exists
 os.makedirs(UPLOADS_FOLDER, exist_ok=True)
@@ -454,9 +454,6 @@ def generate_payload():
             
             if not all(param in data for param in ["userAgent", "sleepTimer"]):
                 return jsonify({"error": "Missing required HTTP fields"}), 400
-            print("----------------------------------------------")
-            print("Sabai chha data haru")
-            print("----------------------------------------------")
             # Use the HTTP agent template function
             agent_code = http_agent_template(
                 lhost=lhost, 
@@ -535,9 +532,6 @@ def generate_payload():
     else:
         return jsonify({"error": "Invalid protocol specified"}), 400
 
-    print("----------------------------------------------")
-    print("Filename ma pugyo")
-    print("----------------------------------------------")
     # Save the generated code to a file
     filename = f"{name}_{protocol}{'.py' if payload_type == '.py' else '.exe'}"
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
