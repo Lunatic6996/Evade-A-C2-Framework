@@ -1,0 +1,3 @@
+openssl req -newkey rsa:2048 -nodes -keyout server.key -x509 -days 365 -out server.crt -config openssl.cnf -extensions req_ext
+openssl x509 -in server.crt -text -noout | grep -A 1 "Subject Alternative Name"
+

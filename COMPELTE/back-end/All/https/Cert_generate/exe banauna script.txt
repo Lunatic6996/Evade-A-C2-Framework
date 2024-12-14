@@ -1,0 +1,1 @@
+pyinstaller --onefile  --noconsole --add-data "E:\Github\Repos\Evade-A-C2-Framework\test\https_complete\server.crt;." 

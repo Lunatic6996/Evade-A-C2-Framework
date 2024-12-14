@@ -1,0 +1,5 @@
+sudo apt install npm
+npm install react-scripts@latest\n
+npm cache clean --force\n
+
+pip install flask_cors

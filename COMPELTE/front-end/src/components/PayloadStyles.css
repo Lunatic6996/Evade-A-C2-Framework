@@ -1,0 +1,51 @@
+.payload-container {
+    width: 100%; /* Use full container width but maintain padding */
+    max-width: 480px; /* Reduced maximum width for a tighter layout */
+    margin: 20px auto; /* Centering the container and adding vertical space */
+    padding: 20px; /* Consistent padding around the content */
+    background-color: #f9f9f9; /* Lighter background for subtle contrast */
+    border-radius: 8px; /* Smooth rounded corners */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Soft shadow for depth */
+}
+
+.payload-form {
+    display: flex;
+    flex-direction: column; /* Ensures that all form elements are stacked vertically */
+    align-items: center; /* Centers the form elements horizontally */
+}
+
+.payload-form div {
+    width: 100%; /* Ensures div containers use the full available width */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centers the labels and inputs within their divs */
+}
+
+.payload-form input[type="text"],
+.payload-form input[type="number"],
+.payload-form select {
+    width: 90%; /* Adjusts width to give some space on the sides */
+    padding: 8px;
+    margin: 5px 0 15px; /* Adjusts margin to create space around inputs */
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-align: center; /* Centers text inside inputs */
+}
+
+.payload-form button {
+    width: 90%; /* Matches input fields width */
+    padding: 10px;
+    margin-top: 20px; /* Gives some space above the button */
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.help-icon {
+    display: inline-block;
+    margin-left: 5px;
+    font-weight: bold;
+    cursor: help;
+  }
+  

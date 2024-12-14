@@ -1,0 +1,102 @@
+/* General layout styling */
+.listener-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+}
+
+/* Style each section with some spacing and a border to separate them visually */
+.section {
+    flex: 1; /* Each section takes equal width */
+    padding: 20px;
+    margin: 10px;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Header and paragraph styling */
+.section h2,
+.section p {
+    color: #333;
+    margin: 0 0 10px 0;
+}
+
+.section h2 {
+    font-size: 20px;
+}
+
+/* Form styling */
+.form {
+    display: flex;
+    flex-direction: column;
+}
+
+.label-group {
+    margin-bottom: 15px;
+}
+
+.label-group label {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.label-group input,
+.label-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* Include padding and border in the element's width */
+}
+
+.button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.button:hover {
+    background-color: #0056b3;
+}
+
+/* Configuration list styling */
+.config-list {
+    margin-top: 20px;
+}
+
+.config-item {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.config-item button {
+    padding: 5px 10px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    float: right;
+}
+
+.config-item button:hover {
+    background-color: #c82333;
+}
+
+.help-icon {
+    display: inline-block;
+    margin-left: 5px;
+    font-weight: bold;
+    cursor: help;
+}

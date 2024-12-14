@@ -1,0 +1,127 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Command and Control Interface</title>
+</head>
+<body>
+    <h1>Command and Control Interface</h1>
+    
+    <!-- Display list of agents -->
+    <h2>Agents:</h2>
+    <ul id="agentsList"></ul>
+
+    <!-- Form to send command to agent -->
+    <h2>Send Command:</h2>
+    <form id="commandForm" method="post">
+        <label for="agentSelect">Select Agent:</label>
+        <select id="agentSelect" name="agent_id">
+            <!-- Agents options will be populated dynamically -->
+        </select>
+        <label for="command">Enter Command:</label>
+        <input type="text" id="command" name="command">
+        <button type="submit">Submit</button>
+    </form>
+
+    <h3>Command: <span id="currentCommand"></span></h3>
+    <h3>Output:</h3>
+    <ul id="output"></ul>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
+<script>
+    const socket = io();
+
+    // Function to add agent to the list
+    function addAgentToList(agent) {
+        const agentsList = document.getElementById('agentsList');
+        const listItem = document.createElement('li');
+        listItem.textContent = agent;
+        agentsList.appendChild(listItem);
+    }
+
+    // Function to populate agent select options
+    function populateAgentSelect(agents) {
+        const agentSelect = document.getElementById('agentSelect');
+        agentSelect.innerHTML = ''; // Clear previous options
+        agents.forEach(agent => {
+            const option = document.createElement('option');
+            option.value = agent;
+            option.textContent = agent;
+            agentSelect.appendChild(option);
+        });
+    }
+
+    // Function to update agent list
+    function updateAgentList(agents) {
+        const agentsList = document.getElementById('agentsList');
+        agentsList.innerHTML = ''; // Clear previous list
+        agents.forEach(agent => {
+            const listItem = document.createElement('li');
+            listItem.textContent = agent;
+            agentsList.appendChild(listItem);
+        });
+    }
+
+    // Function to update output list
+    function updateOutput(output) {
+        const outputList = document.getElementById('output');
+        const newItem = document.createElement('li');
+        newItem.textContent = output;
+        outputList.appendChild(newItem);
+    }
+
+    // Fetch agent list and populate dropdown when page loads
+    function fetchAgentList() {
+        fetch('/agents')
+            .then(response => response.json())
+            .then(data => {
+                updateAgentList(data.agents);
+                populateAgentSelect(data.agents);
+            });
+    }
+
+    // Initial fetch of agent list
+    fetchAgentList();
+
+    // Socket.io listener for output update
+    socket.on('output_update', (data) => {
+        updateOutput(data.output);
+    });
+
+    // Socket.io listener for new agent registration
+    socket.on('agent_registered', (data) => {
+        addAgentToList(data.agent);
+        // Add the agent to the dropdown list
+        const agentSelect = document.getElementById('agentSelect');
+        const option = document.createElement('option');
+        option.value = data.agent;
+        option.textContent = data.agent;
+        agentSelect.appendChild(option);
+    });
+
+    // Submit form using AJAX to prevent page refresh
+    document.getElementById('commandForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent form submission
+        const agentSelect = document.getElementById('agentSelect');
+        const agentId = agentSelect.value;
+        const commandInput = document.getElementById('command');
+        const command = commandInput.value.trim();
+        commandInput.value = ''; // Clear input field
+
+        // Send command to server
+        fetch('/send_command', {  // Updated endpoint to match server
+            method: 'POST',  // Ensure that POST method is used
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({ 'agent_id': agentId, 'command': command })  // Include agent_id and command in the body
+        });
+        
+        // Update current command on the page
+        document.getElementById('currentCommand').textContent = command;
+    });
+</script>
+</body>
+</html>

